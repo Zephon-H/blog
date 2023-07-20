@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+<meta name="referrer" content="no-referrer" />
+<meta http-equiv="Content-Security-Policy" ontent="upgrade-insecure-requests">
+  <link rel="apple-touch-icon" sizes="180x180" href="/blog/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blog/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blog/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blog/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blog/css/main.css">
+
+
+<link rel="stylesheet" href="/blog/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.zephon.eu.org","root":"/blog/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="如何理解SpringCloud中常用组件之间的配合使用？  使用SpringCloud Gateway时，无法使用Spring Session">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一些微服务项目开发中遇到的问题">
+<meta property="og:url" content="http://www.zephon.eu.org/blog/2022/09/29/%E4%B8%80%E4%BA%9B%E5%BE%AE%E6%9C%8D%E5%8A%A1%E9%A1%B9%E7%9B%AE%E5%BC%80%E5%8F%91%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98/index.html">
+<meta property="og:site_name" content="Zephon Blog">
+<meta property="og:description" content="如何理解SpringCloud中常用组件之间的配合使用？  使用SpringCloud Gateway时，无法使用Spring Session">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://image.zephon.ml/image-20221004140139311.png">
+<meta property="article:published_time" content="2022-09-29T04:25:33.000Z">
+<meta property="article:modified_time" content="2023-07-20T08:32:51.106Z">
+<meta property="article:author" content="Zephon">
+<meta property="article:tag" content="问题解决过程记录">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://image.zephon.ml/image-20221004140139311.png">
+
+<link rel="canonical" href="http://www.zephon.eu.org/blog/2022/09/29/%E4%B8%80%E4%BA%9B%E5%BE%AE%E6%9C%8D%E5%8A%A1%E9%A1%B9%E7%9B%AE%E5%BC%80%E5%8F%91%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>一些微服务项目开发中遇到的问题 | Zephon Blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?697784f78fd83128cc519aedf69e3017";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container use-motion">
+    <div class="headband">
+	<a target="_blank" rel="noopener" href="https://github.com/Zephon-H" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	</div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/blog/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zephon Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/blog/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-download">
+
+    <a href="/blog/download/" rel="section"><i class="fa fa-download fa-fw"></i>下载</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/blog/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://www.zephon.eu.org/blog/2022/09/29/%E4%B8%80%E4%BA%9B%E5%BE%AE%E6%9C%8D%E5%8A%A1%E9%A1%B9%E7%9B%AE%E5%BC%80%E5%8F%91%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blog/images/avatar1.gif">
+      <meta itemprop="name" content="Zephon">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zephon Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一些微服务项目开发中遇到的问题
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-09-29 12:25:33" itemprop="dateCreated datePublished" datetime="2022-09-29T12:25:33+08:00">2022-09-29</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-07-20 16:32:51" itemprop="dateModified" datetime="2023-07-20T16:32:51+08:00">2023-07-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/blog/categories/%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E8%BF%87%E7%A8%8B%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">问题解决过程记录</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>9.6k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>9 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="如何理解springcloud中常用组件之间的配合使用">如何理解SpringCloud中常用组件之间的配合使用？</h1>
+<p><img src="http://image.zephon.ml/image-20221004140139311.png" /></p>
+<h1 id="使用springcloud-gateway时无法使用spring-session">使用SpringCloud Gateway时，无法使用Spring Session</h1>
+<ol type="1">
+<li><p>spring cloud gateway是基于webflux，是非阻塞的，zuul是基于servlet的，是阻塞的，所以在gateway中需要将EnableRedisHttpSession注解换成EnableRedisWebSession：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@EnableRedisWebSession(saveMode = SaveMode.ALWAYS)</span></span><br><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RedisSessionConfig</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> WebSessionIdResolver <span class="title">webSessionIdResolver</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> CustomWebSessionIdResolver();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">CustomWebSessionIdResolver</span> <span class="keyword">extends</span> <span class="title">CookieWebSessionIdResolver</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 重写resolve方法 对SESSION进行base64解码</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> List&lt;String&gt; <span class="title">resolveSessionIds</span><span class="params">(ServerWebExchange exchange)</span> </span>&#123;</span><br><span class="line">        MultiValueMap&lt;String, HttpCookie&gt; cookieMap = exchange.getRequest().getCookies();</span><br><span class="line">        <span class="comment">// 获取SESSION</span></span><br><span class="line">        List&lt;HttpCookie&gt; cookies = cookieMap.get(getCookieName());</span><br><span class="line">        <span class="keyword">if</span> (cookies == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> Collections.emptyList();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> cookies.stream().map(HttpCookie::getValue).map(<span class="keyword">this</span>::base64Decode).collect(Collectors.toList());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> String <span class="title">base64Decode</span><span class="params">(String base64Value)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">byte</span>[] decodedCookieBytes = Base64.getDecoder().decode(base64Value);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> String(decodedCookieBytes);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>实现GlobalFilter接口，例如：登录过滤功能</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SCWAccessFilter</span> <span class="keyword">implements</span> <span class="title">GlobalFilter</span>, <span class="title">Ordered</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Mono&lt;Void&gt; <span class="title">filter</span><span class="params">(ServerWebExchange exchange, GatewayFilterChain chain)</span> </span>&#123;</span><br><span class="line">        ServerHttpRequest request = exchange.getRequest();</span><br><span class="line">        String path = request.getPath().toString();</span><br><span class="line">        <span class="keyword">if</span> (AccessPassResources.PASS_RES_SET.contains(path)) &#123;</span><br><span class="line">            <span class="keyword">return</span> chain.filter(exchange);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (AccessPassResources.currentServletPathIsStaticResource(path)) &#123;</span><br><span class="line">            <span class="keyword">return</span> chain.filter(exchange);</span><br><span class="line">        &#125;</span><br><span class="line">        AtomicBoolean loginSuccess = <span class="keyword">new</span> AtomicBoolean(<span class="keyword">false</span>);</span><br><span class="line">        exchange.getSession().subscribe(webSession -&gt; &#123;</span><br><span class="line">            Object loginMember = webSession.getAttribute(SCWConstant.ATTR_NAME_LOGIN_MEMBER);</span><br><span class="line">            <span class="keyword">if</span>(loginMember!=<span class="keyword">null</span>)&#123;</span><br><span class="line">                loginSuccess.set(<span class="keyword">true</span>);</span><br><span class="line">            &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">                exchange.getResponse();</span><br><span class="line">                webSession.getAttributes().put(SCWConstant.ATTR_NAME_MESSAGE, SCWConstant.MESSAGE_ACCESS_FORBIDDEN);</span><br><span class="line">                loginSuccess.set(<span class="keyword">false</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(<span class="number">200</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(e);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (loginSuccess.get()) &#123;</span><br><span class="line">            <span class="keyword">return</span> chain.filter(exchange);</span><br><span class="line">        &#125;</span><br><span class="line">        ServerHttpResponse response = exchange.getResponse();</span><br><span class="line">        response.setStatusCode(HttpStatus.SEE_OTHER);</span><br><span class="line">        response.getHeaders().set(HttpHeaders.LOCATION, <span class="string">&quot;/login.html&quot;</span>);</span><br><span class="line">        response.getHeaders().add(<span class="string">&quot;Content-Type&quot;</span>, <span class="string">&quot;text/plain;charset=UTF-8&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> response.setComplete();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getOrder</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h1 id="使用springcloud-gateway时如果对应请求的返回结果是重定向则会改变主机地址为对应微服务的地址302">使用SpringCloud Gateway时，如果对应请求的返回结果是重定向，则会改变主机地址为对应微服务的地址(302)？</h1>
+<p>解决：修改<code>application.yml</code>配置文件<code>PreserveHostHeader</code>，对请求头进行处理</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">spring:</span><br><span class="line">  cloud:</span><br><span class="line">    gateway:</span><br><span class="line">      routes:</span><br><span class="line">        - id: scw-auth</span><br><span class="line">          uri: lb:<span class="comment">//SCW-AUTH</span></span><br><span class="line">          predicates:</span><br><span class="line">          - Path=<span class="comment">/**</span></span><br><span class="line"><span class="comment">          filters:</span></span><br><span class="line"><span class="comment">            - PreserveHostHeader</span></span><br></pre></td></tr></table></figure>
+<h1 id="邮箱验证码功能">邮箱验证码功能</h1>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ProjectUtils</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> fromEmail 发送者邮箱</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> licenseCode 发送者邮箱登录凭证</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> receiveEmail 接收者邮箱</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> codeLength 验证码长度</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> name 收件人名称</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> MessagingException</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> UnsupportedEncodingException</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">sendEmail</span><span class="params">(String fromEmail, String licenseCode, String receiveEmail, <span class="keyword">int</span> codeLength, String name)</span> <span class="keyword">throws</span> MessagingException, UnsupportedEncodingException </span>&#123;</span><br><span class="line">        Properties props = <span class="keyword">new</span> Properties();</span><br><span class="line">        props.setProperty(<span class="string">&quot;mail.transport.protocol&quot;</span>, <span class="string">&quot;smtp&quot;</span>);     <span class="comment">//使用smpt的邮件传输协议</span></span><br><span class="line">        props.setProperty(<span class="string">&quot;mail.smtp.host&quot;</span>, <span class="string">&quot;smtp.qq.com&quot;</span>);       <span class="comment">//主机地址</span></span><br><span class="line">        props.setProperty(<span class="string">&quot;mail.smtp.auth&quot;</span>, <span class="string">&quot;true&quot;</span>);      <span class="comment">//授权通过</span></span><br><span class="line"></span><br><span class="line">        Session session = Session.getInstance(props);     <span class="comment">//通过我们的这些配置，得到一个会话程序</span></span><br><span class="line">        MimeMessage message = <span class="keyword">new</span> MimeMessage(session);</span><br><span class="line">        message.setFrom(<span class="keyword">new</span> InternetAddress(fromEmail));     <span class="comment">//设置发件人</span></span><br><span class="line">        message.setRecipient(MimeMessage.RecipientType.TO, <span class="keyword">new</span> InternetAddress(receiveEmail, <span class="string">&quot;用户&quot;</span>, <span class="string">&quot;utf-8&quot;</span>));      <span class="comment">//设置收件人</span></span><br><span class="line">        message.setSubject(<span class="string">&quot;邮件验证码&quot;</span>, <span class="string">&quot;utf-8&quot;</span>);      <span class="comment">//设置主题</span></span><br><span class="line">        message.setSentDate(<span class="keyword">new</span> Date());</span><br><span class="line">        StringBuilder code = <span class="keyword">new</span> StringBuilder();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; codeLength; i++) &#123;</span><br><span class="line">            code.append((<span class="keyword">int</span>) (Math.random() * <span class="number">10</span>));</span><br><span class="line">        &#125;</span><br><span class="line">        SimpleDateFormat sdf = <span class="keyword">new</span> SimpleDateFormat(<span class="string">&quot;yyyy年MM月dd日 HH:mm:ss&quot;</span>);</span><br><span class="line">        String str = <span class="string">&quot;&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&#x27;UTF-8&#x27;&gt;&lt;/head&gt;&lt;body&gt;&lt;p style=&#x27;font-size: 20px;font-weight:bold;&#x27;&gt;尊敬的&quot;</span> + name + <span class="string">&quot;:您好！&lt;/p&gt;&quot;</span></span><br><span class="line">                + <span class="string">&quot;&lt;p style=&#x27;text-indent:2em; font-size: 20px;&#x27;&gt;欢迎注册，您本次的注册码是 &quot;</span></span><br><span class="line">                + <span class="string">&quot;&lt;span style=&#x27;font-size:30px;font-weight:bold;color:red&#x27;&gt;&quot;</span> + code + <span class="string">&quot;&lt;/span&gt;，1分钟之内有效，请尽快使用！&lt;/p&gt;&quot;</span></span><br><span class="line">                + <span class="string">&quot;&lt;p style=&#x27;text-align:right; padding-right: 20px;&#x27;&quot;</span></span><br><span class="line">                + <span class="string">&quot;&lt;span style=&#x27;font-size: 18px; float:right; margin-right: 30px;&#x27;&gt;&quot;</span> + sdf.format(<span class="keyword">new</span> Date()) + <span class="string">&quot;&lt;/span&gt;&lt;/body&gt;&lt;/html&gt;&quot;</span>;</span><br><span class="line"></span><br><span class="line">        Multipart mul = <span class="keyword">new</span> MimeMultipart();  <span class="comment">//新建一个MimeMultipart对象来存放多个BodyPart对象</span></span><br><span class="line">        BodyPart mdp = <span class="keyword">new</span> MimeBodyPart();  <span class="comment">//新建一个存放信件内容的BodyPart对象</span></span><br><span class="line">        mdp.setContent(str, <span class="string">&quot;text/html;charset=utf-8&quot;</span>);</span><br><span class="line">        mul.addBodyPart(mdp);  <span class="comment">//将含有信件内容的BodyPart加入到MimeMultipart对象中</span></span><br><span class="line">        message.setContent(mul); <span class="comment">//把mul作为消息内容</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        message.saveChanges();</span><br><span class="line"></span><br><span class="line">        <span class="comment">//创建一个传输对象</span></span><br><span class="line">        Transport transport = session.getTransport(<span class="string">&quot;smtp&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//建立与服务器的链接  465端口是 SSL传输</span></span><br><span class="line">        transport.connect(<span class="string">&quot;smtp.qq.com&quot;</span>, <span class="number">587</span>, fromEmail, licenseCode);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//发送邮件</span></span><br><span class="line">        transport.sendMessage(message, message.getAllRecipients());</span><br><span class="line"></span><br><span class="line">        <span class="comment">//关闭邮件传输</span></span><br><span class="line">        transport.close();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> code.toString();</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="openfeign远程调用报错">OpenFeign远程调用报错</h1>
+<p>错误内容：</p>
+<blockquote>
+<p>### Error updating database. Cause: java.sql.SQLSyntaxErrorException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1 ### The error may exist in file [D:-member-parent-member-mysql-.xml] ### The error may involve com.zephon.scw.mapper.MemberPOMapper.insertSelective-Inline ### The error occurred while setting parameters ### SQL: <strong>insert into t_member ###</strong> Cause: java.sql.SQLSyntaxErrorException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1 ; bad SQL grammar []; nested exception is java.sql.SQLSyntaxErrorException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1</p>
+</blockquote>
+<p>解决：</p>
+<p>在使用OpenFeign接口时，服务提供者的请求参数中忘写<code>@RequestBody</code>注解了，之后开发中最好将服务提供者和OpenFeign接口对应的方法请求参数需要写的都写上<code>@RequestBody</code></p>
+<p>服务提供者：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RequestMapping(&quot;/save/member/remote&quot;)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> ResultEntity&lt;MemberPO&gt; <span class="title">saveMemberPO</span><span class="params">(<span class="meta">@RequestBody</span> MemberPO memberPO)</span></span>&#123;</span><br></pre></td></tr></table></figure>
+<p>接口：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@FeignClient(&quot;scw-mysql&quot;)</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">MySQLRemoteService</span> </span>&#123;</span><br><span class="line">    <span class="meta">@RequestMapping(&quot;/save/member/remote&quot;)</span></span><br><span class="line">    <span class="function">ResultEntity&lt;MemberPO&gt; <span class="title">saveMemberPO</span><span class="params">(<span class="meta">@RequestBody</span> MemberPO memberPO)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="mybatis插入数据后如何获取生成的id">MyBatis插入数据后如何获取生成的ID？</h1>
+<ol type="1">
+<li><p>配置Mapper的XML，<code>useGeneratedKeys="true" keyProperty="xxx"</code>如：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">insert</span> <span class="attr">id</span>=<span class="string">&quot;insertSelective&quot;</span> <span class="attr">useGeneratedKeys</span>=<span class="string">&quot;true&quot;</span> <span class="attr">keyProperty</span>=<span class="string">&quot;id&quot;</span> <span class="attr">...</span></span></span><br></pre></td></tr></table></figure></li>
+<li><p>插入后通过get方法获取生成的id</p></li>
+</ol>
+<h1 id="异步请求中无法对session中的属性进行更新暂未找到原因只能侧面解决">异步请求中无法对session中的属性进行更新？暂未找到原因，只能侧面解决</h1>
+<p>问题：</p>
+<p>在请求A中设置了Session</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RequestMapping(&quot;/A&quot;)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> String <span class="title">saveProjectBasicInfo</span><span class="params">(ProjectVO projectVO,</span></span></span><br><span class="line"><span class="params"><span class="function">                                   HttpSession session,</span></span></span><br><span class="line"><span class="params"><span class="function">                                   ModelMap modelMap)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    ...</span><br><span class="line">    session.setAttribute(SCWConstant.ATTR_NAME_TEMPLE_PROJECT, projectVO);</span><br></pre></td></tr></table></figure>
+<p>在<code>@ResponseBody</code>请求中更新Session:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@ResponseBody</span></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/B&quot;)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> ResultEntity&lt;String&gt; <span class="title">save</span><span class="params">(ReturnVO returnVO, HttpSession session)</span> </span>&#123;</span><br><span class="line">    ProjectVO projectVO = (ProjectVO) session.getAttribute(SCWConstant.ATTR_NAME_TEMPLE_PROJECT);</span><br><span class="line">    projectVO.setReturnVOList(<span class="keyword">new</span> ArrayList&lt;&gt;());</span><br><span class="line">    session.setAttribute(SCWConstant.ATTR_NAME_TEMPLE_PROJECT, projectVO);</span><br></pre></td></tr></table></figure>
+<p>在请求C中获取session中的数据，发现之前设置的值是空的</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RequestMapping(&quot;/C&quot;)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> String <span class="title">createConfirm</span><span class="params">(HttpSession session)</span></span>&#123;</span><br><span class="line">    ProjectVO projectVO = (ProjectVO) session.getAttribute(SCWConstant.ATTR_NAME_TEMPLE_PROJECT);</span><br><span class="line">    projectVO.getReturnVOList(); <span class="comment">// 发现是null</span></span><br></pre></td></tr></table></figure>
+<p>解决方案：未真正解决</p>
+<p><strong>猜测：Gateway的问题</strong></p>
+<p>侧面解决，<strong>换个名</strong>：</p>
+<p>在请求B中将要添加的属性单独放到session中</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@ResponseBody</span></span><br><span class="line"><span class="meta">@RequestMapping(&quot;/B&quot;)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> ResultEntity&lt;String&gt; <span class="title">save</span><span class="params">(ReturnVO returnVO, HttpSession session)</span> </span>&#123;</span><br><span class="line">    ProjectVO projectVO = (ProjectVO) session.getAttribute(SCWConstant.ATTR_NAME_TEMPLE_PROJECT);</span><br><span class="line">    projectVO.setReturnVOList(<span class="keyword">new</span> ArrayList&lt;&gt;());</span><br><span class="line">    session.setAttribute(<span class="string">&quot;new_name&quot;</span>, projectVO);</span><br></pre></td></tr></table></figure>
+<p>然后在请求C中再去获得并设置对应的属性：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RequestMapping(&quot;/C&quot;)</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> String <span class="title">createConfirm</span><span class="params">(HttpSession session)</span></span>&#123;</span><br><span class="line">    ProjectVO projectVO = (ProjectVO) session.getAttribute(<span class="string">&quot;new_name&quot;</span>);</span><br></pre></td></tr></table></figure>
+<p>正式解决方案：</p>
+<p>之前为了解决Gateway无法通过session判断登录的问题，对Gateway进行了配置：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@EnableRedisWebSession(saveMode = SaveMode.ALWAYS)</span></span><br><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RedisSessionConfig</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> WebSessionIdResolver <span class="title">webSessionIdResolver</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> CustomWebSessionIdResolver();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">CustomWebSessionIdResolver</span> <span class="keyword">extends</span> <span class="title">CookieWebSessionIdResolver</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 重写resolve方法 对SESSION进行base64解码</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> List&lt;String&gt; <span class="title">resolveSessionIds</span><span class="params">(ServerWebExchange exchange)</span> </span>&#123;</span><br><span class="line">        MultiValueMap&lt;String, HttpCookie&gt; cookieMap = exchange.getRequest().getCookies();</span><br><span class="line">        <span class="comment">// 获取SESSION</span></span><br><span class="line">        List&lt;HttpCookie&gt; cookies = cookieMap.get(getCookieName());</span><br><span class="line">        <span class="keyword">if</span> (cookies == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> Collections.emptyList();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> cookies.stream().map(HttpCookie::getValue).map(<span class="keyword">this</span>::base64Decode).collect(Collectors.toList());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> String <span class="title">base64Decode</span><span class="params">(String base64Value)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">byte</span>[] decodedCookieBytes = Base64.getDecoder().decode(base64Value);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> String(decodedCookieBytes);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">            System.out.println(<span class="string">&quot;Unable to Base64 decode value: &quot;</span> + base64Value);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这就会导致Session无法更新的问题，所以将其注释后就可以解决这个问题，然后只能通过token对登录进行认证</p>
+<h1 id="在创建一个微服务去调用feign接口时直接从另一个服务复制过来的包和配置文件进行修改的但调用feign接口报找不到bean错误">在创建一个微服务去调用Feign接口时，直接从另一个服务复制过来的包和配置文件进行修改的，但调用Feign接口报找不到Bean错误</h1>
+<ol type="1">
+<li>检查Main类上面是否有<code>@EnableFeignClients</code>注解</li>
+<li>个人遇到问题的原因是IDEA复制包时没有复制多级包，导致我的<strong>controller在abc目录下，而Feign接口在com.zephon.abc包</strong>下，因此，需要再建一个对应的多级包即可</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>Zephon
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://www.zephon.eu.org/blog/2022/09/29/%E4%B8%80%E4%BA%9B%E5%BE%AE%E6%9C%8D%E5%8A%A1%E9%A1%B9%E7%9B%AE%E5%BC%80%E5%8F%91%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98/" title="一些微服务项目开发中遇到的问题">http://www.zephon.eu.org/blog/2022/09/29/一些微服务项目开发中遇到的问题/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/blog/tags/%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E8%BF%87%E7%A8%8B%E8%AE%B0%E5%BD%95/" rel="tag"><i class="fa fa-tag"></i> 问题解决过程记录</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/blog/2022/09/25/SpringSecurity/" rel="prev" title="SpringSecurity">
+      <i class="fa fa-chevron-left"></i> SpringSecurity
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/blog/2022/10/06/NIO/" rel="next" title="NIO">
+      NIO <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="lv-container" data-id="city" data-uid="MTAyMC80MDY3OS8xNzIwNA=="></div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E7%90%86%E8%A7%A3springcloud%E4%B8%AD%E5%B8%B8%E7%94%A8%E7%BB%84%E4%BB%B6%E4%B9%8B%E9%97%B4%E7%9A%84%E9%85%8D%E5%90%88%E4%BD%BF%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">如何理解SpringCloud中常用组件之间的配合使用？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8springcloud-gateway%E6%97%B6%E6%97%A0%E6%B3%95%E4%BD%BF%E7%94%A8spring-session"><span class="nav-number">2.</span> <span class="nav-text">使用SpringCloud Gateway时，无法使用Spring Session</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8springcloud-gateway%E6%97%B6%E5%A6%82%E6%9E%9C%E5%AF%B9%E5%BA%94%E8%AF%B7%E6%B1%82%E7%9A%84%E8%BF%94%E5%9B%9E%E7%BB%93%E6%9E%9C%E6%98%AF%E9%87%8D%E5%AE%9A%E5%90%91%E5%88%99%E4%BC%9A%E6%94%B9%E5%8F%98%E4%B8%BB%E6%9C%BA%E5%9C%B0%E5%9D%80%E4%B8%BA%E5%AF%B9%E5%BA%94%E5%BE%AE%E6%9C%8D%E5%8A%A1%E7%9A%84%E5%9C%B0%E5%9D%80302"><span class="nav-number">3.</span> <span class="nav-text">使用SpringCloud Gateway时，如果对应请求的返回结果是重定向，则会改变主机地址为对应微服务的地址(302)？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%82%AE%E7%AE%B1%E9%AA%8C%E8%AF%81%E7%A0%81%E5%8A%9F%E8%83%BD"><span class="nav-number">4.</span> <span class="nav-text">邮箱验证码功能</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#openfeign%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8%E6%8A%A5%E9%94%99"><span class="nav-number">5.</span> <span class="nav-text">OpenFeign远程调用报错</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#mybatis%E6%8F%92%E5%85%A5%E6%95%B0%E6%8D%AE%E5%90%8E%E5%A6%82%E4%BD%95%E8%8E%B7%E5%8F%96%E7%94%9F%E6%88%90%E7%9A%84id"><span class="nav-number">6.</span> <span class="nav-text">MyBatis插入数据后如何获取生成的ID？</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5%E8%AF%B7%E6%B1%82%E4%B8%AD%E6%97%A0%E6%B3%95%E5%AF%B9session%E4%B8%AD%E7%9A%84%E5%B1%9E%E6%80%A7%E8%BF%9B%E8%A1%8C%E6%9B%B4%E6%96%B0%E6%9A%82%E6%9C%AA%E6%89%BE%E5%88%B0%E5%8E%9F%E5%9B%A0%E5%8F%AA%E8%83%BD%E4%BE%A7%E9%9D%A2%E8%A7%A3%E5%86%B3"><span class="nav-number">7.</span> <span class="nav-text">异步请求中无法对session中的属性进行更新？暂未找到原因，只能侧面解决</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9C%A8%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%8E%BB%E8%B0%83%E7%94%A8feign%E6%8E%A5%E5%8F%A3%E6%97%B6%E7%9B%B4%E6%8E%A5%E4%BB%8E%E5%8F%A6%E4%B8%80%E4%B8%AA%E6%9C%8D%E5%8A%A1%E5%A4%8D%E5%88%B6%E8%BF%87%E6%9D%A5%E7%9A%84%E5%8C%85%E5%92%8C%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E8%BF%9B%E8%A1%8C%E4%BF%AE%E6%94%B9%E7%9A%84%E4%BD%86%E8%B0%83%E7%94%A8feign%E6%8E%A5%E5%8F%A3%E6%8A%A5%E6%89%BE%E4%B8%8D%E5%88%B0bean%E9%94%99%E8%AF%AF"><span class="nav-number">8.</span> <span class="nav-text">在创建一个微服务去调用Feign接口时，直接从另一个服务复制过来的包和配置文件进行修改的，但调用Feign接口报找不到Bean错误</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zephon"
+      src="/blog/images/avatar1.gif">
+  <p class="site-author-name" itemprop="name">Zephon</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/blog/archives">
+          <span class="site-state-item-count">217</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/blog/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Zephon-H" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Zephon-H" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/blog/qq1528498238@gmail.com" title="E-Mail → qq1528498238@gmail.com"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zephon</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">1.3m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">20:18</span>
+</div>
+
+<br />
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("04/21/2019 15:54:40");//此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒";
+    }
+setInterval("createtime()",250);
+</script>
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/blog/lib/anime.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/blog/js/utils.js"></script>
+
+<script src="/blog/js/motion.js"></script>
+
+
+<script src="/blog/js/schemes/pisces.js"></script>
+
+
+<script src="/blog/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/blog/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+<script>
+NexT.utils.loadComments(document.querySelector('#lv-container'), () => {
+  window.livereOptions = {
+    refer: location.pathname.replace(CONFIG.root, '').replace('index.html', '')
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+});
+</script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</body>
+</html>

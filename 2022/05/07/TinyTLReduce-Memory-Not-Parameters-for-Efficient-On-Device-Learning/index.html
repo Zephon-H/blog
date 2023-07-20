@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+<meta name="referrer" content="no-referrer" />
+<meta http-equiv="Content-Security-Policy" ontent="upgrade-insecure-requests">
+  <link rel="apple-touch-icon" sizes="180x180" href="/blog/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blog/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blog/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blog/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blog/css/main.css">
+
+
+<link rel="stylesheet" href="/blog/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.zephon.eu.org","root":"/blog/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="译：《TinyTL：降低内存而非参数进行高效的设备学习》 论文地址：TinyTL: Reduce Memory, Not Parameters for Efficient On-Device Learning 从降低内存角度提升边缘设备迁移学习效率">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《TinyTL:Reduce Memory,Not Parameters for Efficient On-Device Learning》">
+<meta property="og:url" content="http://www.zephon.eu.org/blog/2022/05/07/TinyTLReduce-Memory-Not-Parameters-for-Efficient-On-Device-Learning/index.html">
+<meta property="og:site_name" content="Zephon Blog">
+<meta property="og:description" content="译：《TinyTL：降低内存而非参数进行高效的设备学习》 论文地址：TinyTL: Reduce Memory, Not Parameters for Efficient On-Device Learning 从降低内存角度提升边缘设备迁移学习效率">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://image.zephon.ml/image-20220507162537855.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220507172605316.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220507172756933.png">
+<meta property="article:published_time" content="2022-05-07T11:13:52.000Z">
+<meta property="article:modified_time" content="2023-07-20T08:32:51.106Z">
+<meta property="article:author" content="Zephon">
+<meta property="article:tag" content="论文阅读">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://image.zephon.ml/image-20220507162537855.png">
+
+<link rel="canonical" href="http://www.zephon.eu.org/blog/2022/05/07/TinyTLReduce-Memory-Not-Parameters-for-Efficient-On-Device-Learning/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>《TinyTL:Reduce Memory,Not Parameters for Efficient On-Device Learning》 | Zephon Blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?697784f78fd83128cc519aedf69e3017";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container use-motion">
+    <div class="headband">
+	<a target="_blank" rel="noopener" href="https://github.com/Zephon-H" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	</div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/blog/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zephon Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/blog/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-download">
+
+    <a href="/blog/download/" rel="section"><i class="fa fa-download fa-fw"></i>下载</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/blog/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://www.zephon.eu.org/blog/2022/05/07/TinyTLReduce-Memory-Not-Parameters-for-Efficient-On-Device-Learning/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blog/images/avatar1.gif">
+      <meta itemprop="name" content="Zephon">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zephon Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          《TinyTL:Reduce Memory,Not Parameters for Efficient On-Device Learning》
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-05-07 19:13:52" itemprop="dateCreated datePublished" datetime="2022-05-07T19:13:52+08:00">2022-05-07</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-07-20 16:32:51" itemprop="dateModified" datetime="2023-07-20T16:32:51+08:00">2023-07-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/blog/categories/%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB/" itemprop="url" rel="index"><span itemprop="name">论文阅读</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>译：《TinyTL：降低内存而非参数进行高效的设备学习》</p>
+<p>论文地址：<a target="_blank" rel="noopener" href="https://arxiv.org/pdf/2007.11622.pdf">TinyTL: Reduce Memory, Not Parameters for Efficient On-Device Learning</a></p>
+<p>从降低内存角度提升边缘设备迁移学习效率</p>
+<h1 id="motivation">Motivation</h1>
+<h2 id="场景">场景</h2>
+<p>有各种传感器的智能边缘设备已经在我们的日常生活中无处不在，而这些设备每天都在通过传感器收集新的敏感数据，但希望可以在不牺牲隐私的情况下提供高质量的定制服务。这样就给更加高效的AI系统带来了新的挑战，这些系统不仅可以运行推理，而且需要根据新收集的数据不断微调预先训练的模型(如设备上学习)</p>
+<h2 id="问题">问题</h2>
+<p>虽然设备上学习可以实现许多吸引人的应用，但这也是一个极具挑战性的问题。</p>
+<p>首先，边缘设备是有内存限制的，例如一个<strong>Raspberry Pi 1 Model A</strong>只有256MB的内存，这对于模型推理是足够的，但目前而言对于训练是不够的，即使使用轻量神经网络结构(MobileNetV2)。此外，内存还是由设备上的各种应用和操作系统共享的，单个应用程序可能只能分配到总内存中的一小部分，这就使得这一挑战更加重要。</p>
+<p>其次，边缘设备是有能源限制的，DRAM访问比片上SRAM访问多消耗两个数量级的能量，片上SRAM无法容纳大的内存需要，因此就必须访问DRAM。具体地，如在批量大小为16的情况下，MobileNetV2的训练内存接近1GB，这远远大于AMD EPYC CPU的SRAM大小，更别提更低级的边缘设备。因此，如果能将训练内存固定在片上SRAM，一定可以大大提高速度和能量效率。</p>
+<h2 id="相关工作">相关工作</h2>
+<p>有很多有效的推理技术可以减少可训练参数的数量和计算FLOPs，但参数高效或FLOPs高效技术并不能直接节省训练内存。训练内存的瓶颈是激活值而非参数。如下图，比较了ResNet-50和MobileNetV2-1.4，</p>
+<p>已有的工作通过降低训练参数数量来解决这个问题，但这不能直接转换成节省内存，因为主要的瓶颈是激活值而是不是参数。在参数大小方面，MobileNetV2-1.4比ResNet-50小4.3倍，但对于训练激活大小，MobileNetV2-1.4与ResNet-50几乎相同(仅1.1倍)，导致内存几乎没有减少。因此，减少反向传播中所需的中间激活的大小对于解决设备上训练内存瓶颈是至关重要的。</p>
+<p><img src="http://image.zephon.ml/image-20220507162537855.png" /></p>
+<h3 id="高效推理技术">高效推理技术</h3>
+<ol type="1">
+<li>网络剪枝，移除不重要的单元或通道</li>
+<li>网络量化，降低参数或激活的bit位数</li>
+<li>设计轻量网络结构，手工或NAS</li>
+</ol>
+<h3 id="降低内存占用">降低内存占用</h3>
+<p>研究人员一直在寻找减少训练内存的方法。</p>
+<ol type="1">
+<li>重新计算反向过程中丢弃的激活，这种方法以较大的计算开销为代价减少了内存占用</li>
+<li>分层训练，可以降低内存占用，但会损失精度</li>
+<li>剪枝激活，构建一个动态稀疏计算图来剪枝训练期间的激活</li>
+<li>量化，引入新的低精度浮点格式来减少训练激活的bit位数</li>
+<li>集中于降低峰值推理内存代价，如RNNPool、MemNet</li>
+</ol>
+<p>但本文的方法与这些技术是正交的，可以组合使用。</p>
+<h3 id="迁移学习">迁移学习</h3>
+<p>迁移学习是指在大规模数据集上预训练，并将得到的模型广泛用于迁移学习的固定特征提取器，然后只需要微调最后一层。这种方法不需要存储特征提取器的中间激活，因此内存效率很高。但这种方法容易有限，可能导致精度较差，由于在新数据集与原数据集分布区别较大时。微调整个网络可以获得更高的精度，但需要很大的内存占用。</p>
+<p>有人提出只更新BN层的参数，可以大大减少可训练参数的数量，但参数效率并不能转化为内存效率，它仍然需要大量的内存来存储BN层的输入激活，并且这种方法的准确性比微调整个网络差很多。也有人对一些层进行微调，但具体选择多少层仍然是特定的。</p>
+<h2 id="论文贡献">论文贡献</h2>
+<p>基于这些，作者提出了Tiny-Transfer-Learning (<strong>TinyTL</strong>) 来解决这些挑战，贡献如下：</p>
+<ol type="1">
+<li>提出一种新的迁移学习方法TinyTL，可以将训练存储空间减少一个数量级，从而实现高效的设备上学习。系统性地分析训练了训练时的内存，发型瓶颈来自于权重的更新而非偏置项(bias，假设是ReLU激活)</li>
+<li>引入轻量残差模块( lite residual module)，这是一个内存高效的bias模块，可以在内存开销很小的情况下提升模型容量</li>
+<li>在迁移学习任务上通过实验证明了TinyTL具有很高的内存效率和有效性</li>
+</ol>
+<h1 id="方法简介">方法简介</h1>
+<h2 id="理解反向传播中的内存占用">理解反向传播中的内存占用</h2>
+<p>不失一般性，假设神经网络<span class="math inline">\(\mathcal M\)</span>由一系列层组成： <span class="math display">\[
+\mathcal M(.)=\mathcal F_{W_n}(\mathcal F_{W_{n-1}}(\cdots \mathcal F_{w_2}(\mathcal F_{w_1}(.))\cdots))
+\]</span> 其中，<span class="math inline">\(W_i\)</span>表示第<span class="math inline">\(i\)</span>层的参数，<span class="math inline">\(a_i\)</span>和<span class="math inline">\(a_{i+1}\)</span>分别表示第<span class="math inline">\(i\)</span>层的输入和输出激活，<span class="math inline">\(\mathcal L\)</span>表示损失，在反向传播时，给定<span class="math inline">\(\frac{\partial \mathcal L}{\partial a_{i+1}}\)</span>，则第<span class="math inline">\(i\)</span>层有两个目标：计算<span class="math inline">\(\frac{\partial \mathcal L}{\partial a_i}\)</span>和<span class="math inline">\(\frac{\partial \mathcal L}{\partial W_i}\)</span></p>
+<p>假设第<span class="math inline">\(i\)</span>层是线性层，则其前向传播是：<span class="math inline">\(a_{i+1}=a_iW+b\)</span>，然后在批量大小为1的情况下，反向过程是： <span class="math display">\[
+\frac{\partial \mathcal L}{\partial a_i} = \frac{\partial \mathcal L}{\partial a_{i+1}} \frac{\partial a_{i+1}}{\partial a_i}=\frac{\partial \mathcal L}{\partial a_{i+1}} W^T,\quad \frac{\partial \mathcal L}{\partial W}=\textcolor{red}{a_i^T} \frac{\partial \mathcal L}{\partial a_{i+1}},\quad \frac{\partial \mathcal L}{\partial b}=\frac{\partial \mathcal L}{\partial a_{i+1}}
+\]</span> 从这些公式可以发现，只有在计算权重梯度(<span class="math inline">\(\frac{\partial \mathcal L}{\partial W}\)</span>)时需要主要占用内存的中间激活(<span class="math inline">\(\{a_i\}\)</span>)，而偏置(bias)不用。因此如果只更新偏置，训练内存就可以大大得到节省，这一属性也适用于卷积层和归一化层(如BN、group normalization)，因为它们可以被认为是特殊类型的线性层。</p>
+<p><img src="http://image.zephon.ml/image-20220507172605316.png" /></p>
+<p>如上表，可以发现，非线性激活层(如ReLU、sigmoid、h-swish)，sigmoid和h-swish需要保存<span class="math inline">\(a_i\)</span>来计算<span class="math inline">\(\frac{\partial \mathcal L}{\partial a_i}\)</span>，因此他们是内存不高效的，因此构建在它们之上的激活层也不能有效利用内存，如tanh、swish等。相反地，ReLU和类ReLU形式的激活层，只需要存储一个二进制掩码表示值是否为0，这比存储<span class="math inline">\(a_i\)</span>小了32倍。</p>
+<h2 id="轻量残差学习">轻量残差学习</h2>
+<p><img src="http://image.zephon.ml/image-20220507172756933.png" /></p>
+<p>基于之前的内存占用分析，一个可能的降低内存代价的方法就是<strong>Figure 2b</strong>显示的冻结预训练特征提取器的权重(weights)，只更新偏置(bias)。但是只更新偏置(bias)适应能力有限。</p>
+<p>因此，这里作者引入了轻量残差学习(<strong>Figure 2c</strong>)，利用一类新的广义内存效率高的偏置模块来精炼中间特征图。</p>
+<p>公式化的，一个冻结权重只学习偏置的层可以表示为： <span class="math display">\[
+a_{i+1} = \textcolor{gray}{ \mathcal F_W(a_i) }+b
+\]</span> 为了在保持较小内存占用的情况下提高模型容量，作者添加一个轻量残差模块： <span class="math display">\[
+a_{i+1}=\textcolor{gray}{ \mathcal F_W(a_i) }+b+\mathcal F_{W_r}(a_i&#39;=reduce(a_i))
+\]</span> 其中<span class="math inline">\(a_i&#39;=reduce(a_i)\)</span>是减少的激活，根据之前的分析，学习这些轻量残差模块只需要存储很少的激活<span class="math inline">\(\{a_i&#39;\}\)</span>而不是完整激活<span class="math inline">\(\{a_i\}\)</span></p>
+<h3 id="实现">实现</h3>
+<p>将这应用到 mobile inverted bottleneck blocks (<strong>MB-block</strong>)，关键原则是要保证激活小，根据这一原则，提出两个设计维度来降低激活大小：</p>
+<ul>
+<li><p><strong>宽度</strong></p>
+<p>广泛使用inverted bottleneck需要大量的通道来补偿深度卷积的小容量，这是参数效率高但激活效率低的。更糟的是，来回将<span class="math inline">\(1 \times\)</span>通道转成<span class="math inline">\(6\times\)</span>通道需要两个<span class="math inline">\(1\times 1\)</span>投影层，这使得总激活增至<span class="math inline">\(12\times\)</span>。深度卷积(Depthwise convolution)也具有很低的算术强度(如果是256通道，每字节OPs/Byte不到<span class="math inline">\(1\times 1\)</span>卷积的OPs/Byte的4%)，因此存储效率很低，几乎没有重用。</p>
+<p>为了解决这一限制，轻量残差模块采用了具有比深度卷积高得多的算术强度的分组卷积，在FLOPs和内存之间提供很好的折衷。，也移除了<span class="math inline">\(1\times 1\)</span>投影层，降低总通道数到<span class="math inline">\(\frac{6\times 2+1}{1+1}=6.5\times\)</span></p></li>
+<li><p><strong>分辨率</strong></p>
+<p>随着分辨率的提高，激活大小呈二次曲线增长。因此，作者通过使用<span class="math inline">\(2×2\)</span>的平均池化来对输入特征图进行下采样来缩小轻残差模块中的分辨率。然后，通过双线性上采样，对轻量残差模块的输出进行上采样，以匹配主分支的输出特征映射的大小。</p>
+<p>结合分辨率和宽度优化，轻量残差模块的激活大约比反向瓶颈小<span class="math inline">\(22\times 6.5=26\times\)</span>。</p></li>
+</ul>
+<h2 id="讨论">讨论</h2>
+<h3 id="标准化层">标准化层</h3>
+<p>TinyTL灵活支持不再的归一化层，包括BG、GN、LN等。BN是在视觉任务广泛使用的一种，但BN需要大的批次才能在训练时准确统计估计，并不适合在通常使用小批次节省内存的边缘设备上学习，设备上学习中数据以流的形式，这需要训练批次为1。而GN则可以处理较小的训练批次，因为GN统计的是针对不同输出独立计算的，虽然在实验中发现小批次的GN性能略逊于大批次的BN的。</p>
+<h3 id="特征提取器自适应">特征提取器自适应</h3>
+<p>TinyTL可以用于不同的主干神经网络，如MobileNetV2、ProxylessNASNets、EfficientNets等。但是，由于由于特征提取器的权重在TinyTL中被冻结，而且发现对所有迁移任务使用相同的主干神经网络是次优的。因此，作者使用了预训练的once-for-all网络来选择TinyTL的主干，以自适应地选择最适合目标传输数据集的专用特征提取器</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>Zephon
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://www.zephon.eu.org/blog/2022/05/07/TinyTLReduce-Memory-Not-Parameters-for-Efficient-On-Device-Learning/" title="《TinyTL:Reduce Memory,Not Parameters for Efficient On-Device Learning》">http://www.zephon.eu.org/blog/2022/05/07/TinyTLReduce-Memory-Not-Parameters-for-Efficient-On-Device-Learning/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/blog/tags/%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB/" rel="tag"><i class="fa fa-tag"></i> 论文阅读</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/blog/2022/05/05/MESTAccurate-and-Fast-Memory-Economic-Sparse-Training-Framework-on-the-Edge/" rel="prev" title="《MEST:Accurate and Fast Memory-Economic Sparse Training Framework on the Edge》">
+      <i class="fa fa-chevron-left"></i> 《MEST:Accurate and Fast Memory-Economic Sparse Training Framework on the Edge》
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/blog/2022/06/05/%E7%8E%A9%E5%AE%A2%E4%BA%91%E5%88%B7%E6%9C%BA/" rel="next" title="玩客云刷机">
+      玩客云刷机 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="lv-container" data-id="city" data-uid="MTAyMC80MDY3OS8xNzIwNA=="></div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#motivation"><span class="nav-number">1.</span> <span class="nav-text">Motivation</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF"><span class="nav-number">1.1.</span> <span class="nav-text">场景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98"><span class="nav-number">1.2.</span> <span class="nav-text">问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E5%B7%A5%E4%BD%9C"><span class="nav-number">1.3.</span> <span class="nav-text">相关工作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AB%98%E6%95%88%E6%8E%A8%E7%90%86%E6%8A%80%E6%9C%AF"><span class="nav-number">1.3.1.</span> <span class="nav-text">高效推理技术</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%8D%E4%BD%8E%E5%86%85%E5%AD%98%E5%8D%A0%E7%94%A8"><span class="nav-number">1.3.2.</span> <span class="nav-text">降低内存占用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%81%E7%A7%BB%E5%AD%A6%E4%B9%A0"><span class="nav-number">1.3.3.</span> <span class="nav-text">迁移学习</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BA%E6%96%87%E8%B4%A1%E7%8C%AE"><span class="nav-number">1.4.</span> <span class="nav-text">论文贡献</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%96%B9%E6%B3%95%E7%AE%80%E4%BB%8B"><span class="nav-number">2.</span> <span class="nav-text">方法简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%90%86%E8%A7%A3%E5%8F%8D%E5%90%91%E4%BC%A0%E6%92%AD%E4%B8%AD%E7%9A%84%E5%86%85%E5%AD%98%E5%8D%A0%E7%94%A8"><span class="nav-number">2.1.</span> <span class="nav-text">理解反向传播中的内存占用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BD%BB%E9%87%8F%E6%AE%8B%E5%B7%AE%E5%AD%A6%E4%B9%A0"><span class="nav-number">2.2.</span> <span class="nav-text">轻量残差学习</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.2.1.</span> <span class="nav-text">实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%A8%E8%AE%BA"><span class="nav-number">2.3.</span> <span class="nav-text">讨论</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%87%E5%87%86%E5%8C%96%E5%B1%82"><span class="nav-number">2.3.1.</span> <span class="nav-text">标准化层</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%B9%E5%BE%81%E6%8F%90%E5%8F%96%E5%99%A8%E8%87%AA%E9%80%82%E5%BA%94"><span class="nav-number">2.3.2.</span> <span class="nav-text">特征提取器自适应</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zephon"
+      src="/blog/images/avatar1.gif">
+  <p class="site-author-name" itemprop="name">Zephon</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/blog/archives">
+          <span class="site-state-item-count">217</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/blog/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Zephon-H" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Zephon-H" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/blog/qq1528498238@gmail.com" title="E-Mail → qq1528498238@gmail.com"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zephon</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">1.3m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">20:18</span>
+</div>
+
+<br />
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("04/21/2019 15:54:40");//此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒";
+    }
+setInterval("createtime()",250);
+</script>
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/blog/lib/anime.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/blog/js/utils.js"></script>
+
+<script src="/blog/js/motion.js"></script>
+
+
+<script src="/blog/js/schemes/pisces.js"></script>
+
+
+<script src="/blog/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/blog/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+<script>
+NexT.utils.loadComments(document.querySelector('#lv-container'), () => {
+  window.livereOptions = {
+    refer: location.pathname.replace(CONFIG.root, '').replace('index.html', '')
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+});
+</script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</body>
+</html>

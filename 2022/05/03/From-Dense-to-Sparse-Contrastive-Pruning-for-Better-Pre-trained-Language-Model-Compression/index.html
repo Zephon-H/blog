@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+<meta name="referrer" content="no-referrer" />
+<meta http-equiv="Content-Security-Policy" ontent="upgrade-insecure-requests">
+  <link rel="apple-touch-icon" sizes="180x180" href="/blog/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blog/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blog/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blog/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blog/css/main.css">
+
+
+<link rel="stylesheet" href="/blog/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.zephon.eu.org","root":"/blog/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="译：《从密集到稀疏：对比学习用于更好的预训练语言模型压缩》 论文地址：From Dense to Sparse: Contrastive Pruning for Better Pre-trained Language Model Compression 用于模型剪枝的对比学习框架">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《From Dense to Sparse:Contrastive Pruning for Better Pre-trained Language Model Compression》">
+<meta property="og:url" content="http://www.zephon.eu.org/blog/2022/05/03/From-Dense-to-Sparse-Contrastive-Pruning-for-Better-Pre-trained-Language-Model-Compression/index.html">
+<meta property="og:site_name" content="Zephon Blog">
+<meta property="og:description" content="译：《从密集到稀疏：对比学习用于更好的预训练语言模型压缩》 论文地址：From Dense to Sparse: Contrastive Pruning for Better Pre-trained Language Model Compression 用于模型剪枝的对比学习框架">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://image.zephon.ml/image-20220503143221753.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220503153413018.png">
+<meta property="article:published_time" content="2022-05-03T08:15:32.000Z">
+<meta property="article:modified_time" content="2023-07-20T08:32:51.094Z">
+<meta property="article:author" content="Zephon">
+<meta property="article:tag" content="论文阅读">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://image.zephon.ml/image-20220503143221753.png">
+
+<link rel="canonical" href="http://www.zephon.eu.org/blog/2022/05/03/From-Dense-to-Sparse-Contrastive-Pruning-for-Better-Pre-trained-Language-Model-Compression/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>《From Dense to Sparse:Contrastive Pruning for Better Pre-trained Language Model Compression》 | Zephon Blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?697784f78fd83128cc519aedf69e3017";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container use-motion">
+    <div class="headband">
+	<a target="_blank" rel="noopener" href="https://github.com/Zephon-H" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	</div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/blog/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zephon Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/blog/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-download">
+
+    <a href="/blog/download/" rel="section"><i class="fa fa-download fa-fw"></i>下载</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/blog/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://www.zephon.eu.org/blog/2022/05/03/From-Dense-to-Sparse-Contrastive-Pruning-for-Better-Pre-trained-Language-Model-Compression/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blog/images/avatar1.gif">
+      <meta itemprop="name" content="Zephon">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zephon Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          《From Dense to Sparse:Contrastive Pruning for Better Pre-trained Language Model Compression》
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-05-03 16:15:32" itemprop="dateCreated datePublished" datetime="2022-05-03T16:15:32+08:00">2022-05-03</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-07-20 16:32:51" itemprop="dateModified" datetime="2023-07-20T16:32:51+08:00">2023-07-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/blog/categories/%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB/" itemprop="url" rel="index"><span itemprop="name">论文阅读</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>译：《从密集到稀疏：对比学习用于更好的预训练语言模型压缩》</p>
+<p>论文地址：<a target="_blank" rel="noopener" href="https://arxiv.org/pdf/2112.07198.pdf">From Dense to Sparse: Contrastive Pruning for Better Pre-trained Language Model Compression</a></p>
+<p>用于模型剪枝的对比学习框架</p>
+<h1 id="motivation">Motivation</h1>
+<p>预训练语言模型(PLMs)在NLP领域已经取得巨大成功，但这些PLMs通常具有大量的参数，并且有计算密集型和资源密集型的特点。因此模型压缩被引入来压缩大规模PLMs，然而，绝大多数之前的方法只考虑了针对下游任务的特定任务知识，而忽视了在剪枝过程中任务无关的知识，这可能会导致灾难性遗忘问题，导致泛化能力较差。</p>
+<p>为了解决这些问题，作者提出了他们的方法，对比剪枝(<strong>C</strong>ontr<strong>a</strong>stive <strong>P</strong>runing, CAP)。</p>
+<p>CAP是在预训练和微调的范式下的，被设计作为一种通用框架的，同时兼容结构化剪枝和非结构化剪枝，统一于对比学习。CAP可以使修剪后的模型从预训练模型中学习任务无关的知识，然后基于特定任务知识微调模型。</p>
+<p>CAP的优点：</p>
+<ol type="1">
+<li>CAP在修剪后的模型中同时维护任务无关的知识和特定任务的知识，从而减少灾难性遗忘问题，并在剪枝过程中保持模型性能</li>
+<li>CAP是基于对比学习这一已经被证明是非常强大的表征学习技术的</li>
+<li>CAP是一个框架，而不是一个特定剪枝方法，因此，它是与其它各种剪枝标准正交的，可以被结合使用</li>
+</ol>
+<h1 id="方法简介">方法简介</h1>
+<p><img src="http://image.zephon.ml/image-20220503143221753.png" /></p>
+<p>作者提出的CAP框架总览如上图，通过监督预训练模型和微调模型来剪枝，并在剪枝过程中截取快照以获得不同类型的知识。按照迭代剪枝方法，将预训练模型<span class="math inline">\(\phi_{pre}\)</span>压缩到期望的稀疏比R%(<span class="math inline">\(\phi_{pre} \to \phi_{r1} \to \phi_{r2}\to \dots \to \phi_R\)</span>)，在每一步可以使用任意剪枝标准。</p>
+<p>CAP由三个模块组成：<strong>PrC</strong>，<strong>SnC</strong>和<strong>FiC</strong>，它们都是基于对比学习的，使用不同的方法构造正样本。</p>
+<h2 id="对比学习损失计算">对比学习损失计算</h2>
+<p>对于样本<span class="math inline">\(x_i\)</span>，由模型<span class="math inline">\(\phi\)</span>编码成向量表示<span class="math inline">\(z_i=\phi(x_i)\in\mathbb R^d\)</span>，此外，还有N个样本被编码为<span class="math inline">\(\mathcal S=\{\hat z_j\}_{j=1}^N\)</span>，用于与<span class="math inline">\(z_i\)</span>进行对比，假设<span class="math inline">\(\mathcal S\)</span>中一个或多个正样本<span class="math inline">\(\hat z_p \in \mathcal S\)</span>和其它负样本<span class="math inline">\(\mathcal S \setminus\{\hat z_p\}\)</span>，可对比学习目标可定义为： <span class="math display">\[
+\mathcal L_i = -\frac{1}{||P(i)||}\sum_{\hat z_j\in P(i)}\log \frac{e^{sim(z_i,\hat z_j)/\tau}}{\sum_{k=1}^Ne^{sim(z_i,\hat z_k)/\tau}}
+\]</span> 其中<span class="math inline">\(P(i) \subset \mathcal S\)</span>，表示<span class="math inline">\(z_i\)</span>的正样本集，<span class="math inline">\(sim(z_i,z_j)=\frac{z_i^Tz_j}{||z_i||||z_j||}\)</span>表示余弦相似度函数，<span class="math inline">\(\tau\)</span>表示温度超参数。</p>
+<h2 id="prc使用预训练模型的对比学习">PrC：使用预训练模型的对比学习</h2>
+<p>在向特定下游任务迁移学习过程中，原始PLM中任务无关知识很容易被丢失，这样就会导致灾难性遗忘问题，因此，引入<strong>PrC</strong>模块(图中绿色线)可以基于对比学习来维持通用语言知识。</p>
+<p>假设样本<span class="math inline">\(x_i\)</span>被模型<span class="math inline">\(\phi_r\)</span>编码为<span class="math inline">\(z_i=\phi_r(x_i) \in \mathbb R^d\)</span>，其中<span class="math inline">\(r\%\)</span>表示的是稀疏率。高层次想法是可以将<span class="math inline">\(z_i\)</span>与由预训练模型<span class="math inline">\(\phi_{pre}\)</span>编码的<span class="math inline">\(\{\hat z_j = \phi_{pre}(x_j)\}_{j=1}^N\)</span>进行对比，使得模型可以正确找出那些语义相似(正例)的样本。这样一来，当前的剪枝模型<span class="math inline">\(\phi_r\)</span>就可以模仿预训练模型的表示建模能力，从而保留与任务无关的知识。</p>
+<p>具体地，对于无监督学习<strong>PrC</strong>，<span class="math inline">\(\phi_{pre}(x_i)\)</span>作为<span class="math inline">\(\phi_r(x_i)\)</span>的一个正样本，而<span class="math inline">\(\{\phi_{pre}(x_j)\}_{j\ne i}\)</span>作为负样本，损失为<span class="math inline">\(\mathcal L_{unsup}^{PrC}\)</span>。</p>
+<p>对于监督学习<strong>PrC</strong>，则是进一步利用数据的句子级标注，例如：MNLI任务中，句子被标记为蕴涵(entailment)、中性(neutral)或矛盾(contradiction)，直观地说，是将那些与<span class="math inline">\(x_i\)</span>有相同标签的句子作为正例，因为他们有相似的语义特征，而其它的则作为负例，正式地表示：定义正例为<span class="math inline">\(\{\phi_{pre}(x_j)|y_j=y_i\}\)</span>，其中<span class="math inline">\(y_i\)</span>表示<span class="math inline">\(x_i\)</span>的标签，损失为<span class="math inline">\(\mathcal L_{sup}^{PrC}\)</span>。</p>
+<p>因此，<strong>PrC</strong>最终训练目标为<span class="math inline">\(\mathcal L^{PrC}=\mathcal L_{unsup}^{PrC} + \mathcal L_{sup}^{PrC}\)</span></p>
+<h2 id="snc使用快照的对比学习">SnC：使用快照的对比学习</h2>
+<p>剪枝可以一次完成也可以迭代多次，在这篇论文中，作者采用迭代剪枝的方法因为它更适合高度稀疏。迭代剪枝就是一步步迭代移除权重，直到达到期望的稀疏性，而迭代的过程中产生的蹭模型就被称为<strong>快照</strong>。而之前的研究都只是简单地忽略掉这些快照，作者提出的<strong>SnC</strong>(图中黄线)则可以基于对比学习从这些快照中学习进而对当前模型剪枝。</p>
+<p>具体地，剪枝过程快照集可以用<span class="math inline">\(\{\phi_{r&#39;}\}_{r&#39;&lt;r}=\{\phi_{r1},\phi_{r2},\cdots \}\)</span>来表示，这些快照可以桥接稀疏模型<span class="math inline">\(\phi_r\)</span>和密集模型(<span class="math inline">\(\phi_{pre},\phi_{fine}\)</span>)之间的差距，提供具有不同稀疏结构的多样化监督。</p>
+<p>对于无监督学习<strong>SnC</strong>，对于样本<span class="math inline">\(x_i\)</span>通过当前模型<span class="math inline">\(\phi_r\)</span>编码成<span class="math inline">\(\phi_r(x_i)\in\mathbb R^d\)</span>，使用相同样本但不同快照编码表示<span class="math inline">\(\{\phi_{r&#39;}(x_i)|r&#39;&lt;r\}\)</span>作为正样本，而作为<span class="math inline">\(\{\phi_{r&#39;}(x_j)|j\ne i,r&#39;&lt;r\}\)</span>负样本</p>
+<p>对于监督学习<strong>SnC</strong>，结合标注，将相同标签实例作为正样本。</p>
+<p>最后，<span class="math inline">\(SnC\)</span>训练目标：<span class="math inline">\(\mathcal L^{SnC}=\mathcal L_{unsup}^{SnC}+\mathcal L_{sup}^{SnC}\)</span></p>
+<h2 id="fic使用微调模型的对比学习">FiC：使用微调模型的对比学习</h2>
+<p>为了更好地适应下游任务，剪枝模型<span class="math inline">\(\phi_r\)</span>也可以从微调模型<span class="math inline">\(\phi_{fine}\)</span>学习，为此，作者提出<strong>FiC</strong>模块，从<span class="math inline">\(\phi_r\)</span>和<span class="math inline">\(\phi_{fine}\)</span>构造对比学习，它与<span class="math inline">\(PrC\)</span>几乎相同，除了要用<span class="math inline">\(\phi_{fine}\)</span>替换<span class="math inline">\(\phi_{pre}\)</span>，这样，最后的损失为：<span class="math inline">\(\mathcal L^{FiC}=\mathcal L_{unsup}^{FiC}+\mathcal L_{sup}^{FiC}\)</span></p>
+<h2 id="使用cap框架剪枝">使用CAP框架剪枝</h2>
+<p>综合三种模块，对应的正样本如下：</p>
+<p><img src="http://image.zephon.ml/image-20220503153413018.png" /></p>
+<p>将<strong>PrC</strong>，<strong>SnC</strong>，<strong>FiC</strong>结合在一起，就可以实现提出的<strong>CAP</strong>框架了，并且可以灵活地结合不同的剪枝标准，这里分别考虑结构化剪枝与非结构化剪枝。</p>
+<h3 id="结构化剪枝">结构化剪枝</h3>
+<p>一种广泛使用的结构化剪枝是使用一阶泰勒展开，基于去除后损失<span class="math inline">\(\mathcal L\)</span>的变化来推导重要性得分。这里将其称为<em>First-order pruning</em>，将其融入<strong>CAP</strong>，称为<strong>CAP-f</strong> <span class="math display">\[
+I_w=|\mathcal L_w-\mathcal L_{w=0}|\approx |\frac{\partial \mathcal L}{\partial w}w|
+\]</span></p>
+<h3 id="非结构化剪枝">非结构化剪枝</h3>
+<p>对于非结构化剪枝，这里使用的是基于movement的剪枝方法，其计算参数<span class="math inline">\(w\)</span>重要性得分方法为： <span class="math display">\[
+I_w=-\sum_t \frac{\partial \mathcal L^{(t)}}{\partial w}w^{(t)}
+\]</span> 其中<span class="math inline">\(t\)</span>是训练步数，基于这种方法反转参数后选择前<span class="math inline">\(K\)</span>个策略或预定义阈值策略被称为<em>Movement pruning or Soft-movement pruning</em>，将这些与<strong>CAP</strong>结合，称为<strong>CAP-m</strong>和<strong>CAP-soft</strong></p>
+<p>最后，剪枝和训练模型使用的最终目标可表示为： <span class="math display">\[
+\mathcal L=\lambda_1 \mathcal L^{CE} + \lambda_2 \mathcal L^{PrC}+\lambda_3\mathcal L^{SnC}+\lambda_4 \mathcal L^{FiC}
+\]</span> 其中<span class="math inline">\(\mathcal L^{CE}\)</span>是针对下游任务的交叉熵损失。</p>
+<h2 id="额外的内存开销">额外的内存开销</h2>
+<p>使用<strong>CAP</strong>框架，剪枝模型需要从预训练模型、快照和微调模型中学习，但其实是不需要将所以模型加载到GPU中的，从对比学习损失计算公式可以看出，不需要反向传播梯度，只需要简单地预编码样本并将它们存储到CPU中即可。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>Zephon
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://www.zephon.eu.org/blog/2022/05/03/From-Dense-to-Sparse-Contrastive-Pruning-for-Better-Pre-trained-Language-Model-Compression/" title="《From Dense to Sparse:Contrastive Pruning for Better Pre-trained Language Model Compression》">http://www.zephon.eu.org/blog/2022/05/03/From-Dense-to-Sparse-Contrastive-Pruning-for-Better-Pre-trained-Language-Model-Compression/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/blog/tags/%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB/" rel="tag"><i class="fa fa-tag"></i> 论文阅读</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/blog/2022/04/28/Channel-Pruning-for-Accelerating-Very-Deep-Neural-Networks/" rel="prev" title="《Channel Pruning for Accelerating Very Deep Neural Networks》">
+      <i class="fa fa-chevron-left"></i> 《Channel Pruning for Accelerating Very Deep Neural Networks》
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/blog/2022/05/04/ALBERT-A-LITE-BERT-FOR-SELF-SUPERVISED-LEARNING-OF-LANGUAGE-REPRESENTATIONS/" rel="next" title="《ALBERT:A LITE BERT FOR SELF-SUPERVISED LEARNING OF LANGUAGE REPRESENTATIONS》">
+      《ALBERT:A LITE BERT FOR SELF-SUPERVISED LEARNING OF LANGUAGE REPRESENTATIONS》 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="lv-container" data-id="city" data-uid="MTAyMC80MDY3OS8xNzIwNA=="></div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#motivation"><span class="nav-number">1.</span> <span class="nav-text">Motivation</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%96%B9%E6%B3%95%E7%AE%80%E4%BB%8B"><span class="nav-number">2.</span> <span class="nav-text">方法简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0%E6%8D%9F%E5%A4%B1%E8%AE%A1%E7%AE%97"><span class="nav-number">2.1.</span> <span class="nav-text">对比学习损失计算</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#prc%E4%BD%BF%E7%94%A8%E9%A2%84%E8%AE%AD%E7%BB%83%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0"><span class="nav-number">2.2.</span> <span class="nav-text">PrC：使用预训练模型的对比学习</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#snc%E4%BD%BF%E7%94%A8%E5%BF%AB%E7%85%A7%E7%9A%84%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0"><span class="nav-number">2.3.</span> <span class="nav-text">SnC：使用快照的对比学习</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#fic%E4%BD%BF%E7%94%A8%E5%BE%AE%E8%B0%83%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%AF%B9%E6%AF%94%E5%AD%A6%E4%B9%A0"><span class="nav-number">2.4.</span> <span class="nav-text">FiC：使用微调模型的对比学习</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8cap%E6%A1%86%E6%9E%B6%E5%89%AA%E6%9E%9D"><span class="nav-number">2.5.</span> <span class="nav-text">使用CAP框架剪枝</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E5%8C%96%E5%89%AA%E6%9E%9D"><span class="nav-number">2.5.1.</span> <span class="nav-text">结构化剪枝</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9D%9E%E7%BB%93%E6%9E%84%E5%8C%96%E5%89%AA%E6%9E%9D"><span class="nav-number">2.5.2.</span> <span class="nav-text">非结构化剪枝</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%9D%E5%A4%96%E7%9A%84%E5%86%85%E5%AD%98%E5%BC%80%E9%94%80"><span class="nav-number">2.6.</span> <span class="nav-text">额外的内存开销</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zephon"
+      src="/blog/images/avatar1.gif">
+  <p class="site-author-name" itemprop="name">Zephon</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/blog/archives">
+          <span class="site-state-item-count">217</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/blog/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Zephon-H" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Zephon-H" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/blog/qq1528498238@gmail.com" title="E-Mail → qq1528498238@gmail.com"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zephon</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">1.3m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">20:18</span>
+</div>
+
+<br />
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("04/21/2019 15:54:40");//此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒";
+    }
+setInterval("createtime()",250);
+</script>
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/blog/lib/anime.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/blog/js/utils.js"></script>
+
+<script src="/blog/js/motion.js"></script>
+
+
+<script src="/blog/js/schemes/pisces.js"></script>
+
+
+<script src="/blog/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/blog/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+<script>
+NexT.utils.loadComments(document.querySelector('#lv-container'), () => {
+  window.livereOptions = {
+    refer: location.pathname.replace(CONFIG.root, '').replace('index.html', '')
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+});
+</script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</body>
+</html>

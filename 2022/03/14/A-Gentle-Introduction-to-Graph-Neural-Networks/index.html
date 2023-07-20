@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+<meta name="referrer" content="no-referrer" />
+<meta http-equiv="Content-Security-Policy" ontent="upgrade-insecure-requests">
+  <link rel="apple-touch-icon" sizes="180x180" href="/blog/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blog/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blog/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blog/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blog/css/main.css">
+
+
+<link rel="stylesheet" href="/blog/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.zephon.eu.org","root":"/blog/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="译：《图神经网络》 博客地址：《A Gentle Introduction to Graph Neural Networks》 前言">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《A Gentle Introduction to Graph Neural Networks》">
+<meta property="og:url" content="http://www.zephon.eu.org/blog/2022/03/14/A-Gentle-Introduction-to-Graph-Neural-Networks/index.html">
+<meta property="og:site_name" content="Zephon Blog">
+<meta property="og:description" content="译：《图神经网络》 博客地址：《A Gentle Introduction to Graph Neural Networks》 前言">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://image.zephon.ml/image-20220314161437563.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220314161605353.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220314162246555.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220314162443425.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220314162543622.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220314162630695.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220314163104456.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220314163245755.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220314163348661.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220314164907029.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220315155203490.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220315155547816.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220315160006993.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220315160057883.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220315160805570.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220315161759607.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220315162139621.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220315162528932.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220315162749027.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220315165259621.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220315165508992.png">
+<meta property="article:published_time" content="2022-03-14T04:13:21.000Z">
+<meta property="article:modified_time" content="2023-07-20T08:32:51.090Z">
+<meta property="article:author" content="Zephon">
+<meta property="article:tag" content="论文阅读">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://image.zephon.ml/image-20220314161437563.png">
+
+<link rel="canonical" href="http://www.zephon.eu.org/blog/2022/03/14/A-Gentle-Introduction-to-Graph-Neural-Networks/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>《A Gentle Introduction to Graph Neural Networks》 | Zephon Blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?697784f78fd83128cc519aedf69e3017";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container use-motion">
+    <div class="headband">
+	<a target="_blank" rel="noopener" href="https://github.com/Zephon-H" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	</div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/blog/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zephon Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/blog/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-download">
+
+    <a href="/blog/download/" rel="section"><i class="fa fa-download fa-fw"></i>下载</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/blog/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://www.zephon.eu.org/blog/2022/03/14/A-Gentle-Introduction-to-Graph-Neural-Networks/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blog/images/avatar1.gif">
+      <meta itemprop="name" content="Zephon">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zephon Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          《A Gentle Introduction to Graph Neural Networks》
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-03-14 12:13:21" itemprop="dateCreated datePublished" datetime="2022-03-14T12:13:21+08:00">2022-03-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-07-20 16:32:51" itemprop="dateModified" datetime="2023-07-20T16:32:51+08:00">2023-07-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/blog/categories/%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB/" itemprop="url" rel="index"><span itemprop="name">论文阅读</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>译：《图神经网络》</p>
+<p>博客地址：<a target="_blank" rel="noopener" href="https://distill.pub/2021/gnn-intro/">《A Gentle Introduction to Graph Neural Networks》</a></p>
+<h1 id="前言">前言</h1>
+<p>图随处可见，对应的应用包括但不限于抗菌发现、物理模拟、虚假新闻检测、交通预测、推荐系统等。</p>
+<p>这篇文章探索和解释了现代图神经网络，并且将工作划分为四个部分：</p>
+<ol type="1">
+<li>什么数据可以表示成一个图</li>
+<li>图数据与别的数据的区别，为什么要用GNN而不用别的</li>
+<li>构建一个GNN</li>
+<li>提供一个GNN平台</li>
+</ol>
+<h1 id="什么是图">什么是图</h1>
+<h2 id="图">图</h2>
+<p>图通常可以表示为实体(节点)集合之间的关系(边)，如图：</p>
+<p><img src="http://image.zephon.ml/image-20220314161437563.png" /></p>
+<p>图中节点、边或全局的属性可以用嵌入向量表示，如图：</p>
+<p><img src="http://image.zephon.ml/image-20220314161605353.png" /></p>
+<blockquote>
+<p>图中黄色、蓝色、粉红色的高度表示对应属性的值</p>
+</blockquote>
+<p>根据节点间关系又可分为有向图和无向图</p>
+<h3 id="图片的图形式">图片的图形式</h3>
+<p><img src="http://image.zephon.ml/image-20220314162246555.png" /></p>
+<p>每个节点表示一个像素，不同节点通过边连接，每个节点存储表示RGB的三维向量信息</p>
+<h3 id="文本的图形式">文本的图形式</h3>
+<p><img src="http://image.zephon.ml/image-20220314162443425.png" /></p>
+<p>通过索引将每个字符、单词或token联系，然后使用索引序列表示文本</p>
+<h3 id="一些其它的图">一些其它的图</h3>
+<p>图表示分子：</p>
+<p><img src="http://image.zephon.ml/image-20220314162543622.png" /></p>
+<p>图表示社交网络：</p>
+<p><img src="http://image.zephon.ml/image-20220314162630695.png" /></p>
+<h2 id="什么类型的问题有图结构数据">什么类型的问题有图结构数据？</h2>
+<ol type="1">
+<li>图层面任务</li>
+<li>节点层面任务</li>
+<li>边层面任务</li>
+</ol>
+<h3 id="图层面任务">图层面任务</h3>
+<p>给定一个图，对图进行分类，如判断图是否有两个环：</p>
+<p><img src="http://image.zephon.ml/image-20220314163104456.png" /></p>
+<h3 id="节点层面任务">节点层面任务</h3>
+<p>给定一个图，对节点进行分类，如判断某个节点的阵营：</p>
+<p><img src="http://image.zephon.ml/image-20220314163245755.png" /></p>
+<h3 id="边层面任务">边层面任务</h3>
+<p>给定一个图，对边的属性进行预测：</p>
+<p><img src="http://image.zephon.ml/image-20220314163348661.png" /></p>
+<h2 id="神经网络用于图面对的挑战">神经网络用于图面对的挑战</h2>
+<p>最核心的问题是如何表示图，才可以与神经网络相适应。</p>
+<p>图上面有四种信息：节点属性、边属性、全局信息、连接性</p>
+<p>前三个信息相对简单，可以直接使用向量进行表示，而连接性表示起来就会相对困难。可以用前面展示的邻接矩阵的形式，但存在问题是：</p>
+<ol type="1">
+<li>矩阵可能会非常大，因为得到的矩阵是<span class="math inline">\(N\times N\)</span>的方阵，当<span class="math inline">\(node\)</span>较多时，矩阵就会非常大，可以用稀疏矩阵存储，但计算起来又会比较困难</li>
+<li>邻接矩阵交换任何行或列的顺序不会有影响，这意味着等价的各种邻接矩阵输入到神经网络中后，都应该都得一样的结果</li>
+</ol>
+<p>因此，GNN中采用以下表示方法：</p>
+<p><img src="http://image.zephon.ml/image-20220314164907029.png" /></p>
+<p>将节点和边的属性以及全局信息分别用一个标量或向量表示， 同时维护一个邻接列表，长度和边数一样，第<span class="math inline">\(i\)</span>个向量表示的是第<span class="math inline">\(i\)</span>条边连接的哪两个节点。</p>
+<h1 id="图神经网络">图神经网络</h1>
+<p>GNN是关于图的所有属性(节点、边、全局上下文)的可以优化的变换，它保持图的对称性(排列不变性)。这里使用“信息传递网络”来构建GNN。GNN的输入输出都是一个图，它会对图的顶点、边、全局属性等信息进行变换，而不会去改变图的连接性。</p>
+<h2 id="最简单的gnn">最简单的GNN</h2>
+<p>最简单的GNN如图，是对于顶点向量、边向量和全局向量分别构造一个MLP，这三个MLP组成一个GNN的层，这个层的输入输出都是一个图</p>
+<p><img src="http://image.zephon.ml/image-20220315155203490.png" /></p>
+<p>但这样的话，输出如何得到需要预测的值呢？</p>
+<h3 id="对每个节点进行预测">对每个节点进行预测</h3>
+<h4 id="已经有节点向量">已经有节点向量</h4>
+<p>直接将GNN后每个点的向量表示作为输入，使用一个全连接层和一个softmax得到输出，但这里，无论有多少个节点，这里只有一个全连接层，即所有节点共享一个全连接层参数。</p>
+<p><img src="http://image.zephon.ml/image-20220315155547816.png" /></p>
+<h4 id="没有节点向量">没有节点向量</h4>
+<p>使用pooling，如图，可以使用和对应节点连接的那些边的向量和全局向量全部相加(如果维度不同则需要进行投影等变换操作)</p>
+<p><img src="http://image.zephon.ml/image-20220315160006993.png" /></p>
+<p>整个过程如下图：(<span class="math inline">\(\rho_{E_n\rightarrow V_n}\)</span>表示边到节点的polling操作)</p>
+<p><img src="http://image.zephon.ml/image-20220315160057883.png" /></p>
+<h3 id="对每个边进行预测">对每个边进行预测</h3>
+<p>同节点预测一样，而对于只有节点而没有边，但要对边进行预测时，也可以同节点一样节点转换成边</p>
+<h3 id="对全局属性进行预测">对全局属性进行预测</h3>
+<p>同上</p>
+<h3 id="综合">综合</h3>
+<p>综合上述几种情况，构成端到端结构如下：</p>
+<p><img src="http://image.zephon.ml/image-20220315160805570.png" /></p>
+<p>首先，将图数据输入到GNN模型，然后变换得到保留原连接信息的图，最后根据需要对其中要做预测的属性添加合适的全连接层等，如果缺失信息则加入合适的pooling层，最后得到预测结果。</p>
+<h3 id="问题">问题</h3>
+<p>虽然这种最简单的GNN很简单，但是会有很大的局限性，主要问题在于GNN blocks中，并没有对其使用图的结构信息，也就是说对于每个属性进行变换时，就是对应的属性进行MLP而没有对应的结构信息(如某个节点和哪些边相连等)，所以这里的GNN blocks并没有将整个图的信息更新到属性中，导致最后结果可能并不是非常好。</p>
+<h2 id="改进gnn">改进GNN</h2>
+<p>使用信息传递技术进行改善。</p>
+<p>如图，当对某个节点进行更新时，将其与其邻居的向量通过pooling的形式汇聚到一起再输入到MLP，得到这个节点向量的更新。</p>
+<p><img src="http://image.zephon.ml/image-20220315161759607.png" /></p>
+<p>对应到GNN表示上，如下图所示：(其中的1表示的是1近邻，就是距离为1的点进行pooling)</p>
+<p><img src="http://image.zephon.ml/image-20220315162139621.png" /></p>
+<h2 id="提前汇聚">提前汇聚</h2>
+<p>在前面最简单的GNN中，对于缺失的属性，会在最后从别的属性中汇聚过来弥补这个属性，而实际上不需要等到最后才这样，而可以在比较早的时候进行。</p>
+<h3 id="边的信息传递给节点再传递给边">边的信息传递给节点再传递给边</h3>
+<p>如图，先将节点的信息给边，再将更新后的边的信息汇聚到节点再做更新</p>
+<p><img src="http://image.zephon.ml/image-20220315162528932.png" /></p>
+<p>如下图，更新方式有两种，没有哪种更好，但可以同时进行：</p>
+<p><img src="http://image.zephon.ml/image-20220315162749027.png" /></p>
+<h3 id="全局信息">全局信息</h3>
+<p>之前所说都是通过邻居间pooling，而如果图比较大而且连接没那么紧密的时候，导致信息从一个点传递到另一个很远的点需要走很长的步才行。</p>
+<p>解决方案是加入一个<strong>master node</strong>或<strong>context vector</strong>，这个“节点”是一个虚拟的点，这个点可以和所有的点相连，也和所有边相连(抽象的形式)，也即<span class="math inline">\(U\)</span>，也就是说，如图，当将节点信息汇聚到边时，也会将<span class="math inline">\(U\)</span>汇聚过去，最后更新<span class="math inline">\(U\)</span>时也会将所有节点信息和边信息汇聚</p>
+<p><img src="http://image.zephon.ml/image-20220315165259621.png" /></p>
+<h2 id="综合-1">综合</h2>
+<p>如图，综上上述情况，对于一个节点，就可以使其与相邻边、相邻节点和全局信息进行汇聚，最后将汇聚结果进行MLP处理，这也有点类似与注意力机制。</p>
+<p><img src="http://image.zephon.ml/image-20220315165508992.png" /></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>Zephon
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://www.zephon.eu.org/blog/2022/03/14/A-Gentle-Introduction-to-Graph-Neural-Networks/" title="《A Gentle Introduction to Graph Neural Networks》">http://www.zephon.eu.org/blog/2022/03/14/A-Gentle-Introduction-to-Graph-Neural-Networks/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/blog/tags/%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB/" rel="tag"><i class="fa fa-tag"></i> 论文阅读</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/blog/2022/03/12/Attention-Is-All-You-Need/" rel="prev" title="《Attention Is All You Need》">
+      <i class="fa fa-chevron-left"></i> 《Attention Is All You Need》
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/blog/2022/03/17/Generative-Adversarial-Nets/" rel="next" title="《Generative Adversarial Nets》">
+      《Generative Adversarial Nets》 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="lv-container" data-id="city" data-uid="MTAyMC80MDY3OS8xNzIwNA=="></div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%9B%BE"><span class="nav-number">2.</span> <span class="nav-text">什么是图</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%BE"><span class="nav-number">2.1.</span> <span class="nav-text">图</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%BE%E7%89%87%E7%9A%84%E5%9B%BE%E5%BD%A2%E5%BC%8F"><span class="nav-number">2.1.1.</span> <span class="nav-text">图片的图形式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%87%E6%9C%AC%E7%9A%84%E5%9B%BE%E5%BD%A2%E5%BC%8F"><span class="nav-number">2.1.2.</span> <span class="nav-text">文本的图形式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%BA%9B%E5%85%B6%E5%AE%83%E7%9A%84%E5%9B%BE"><span class="nav-number">2.1.3.</span> <span class="nav-text">一些其它的图</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E7%B1%BB%E5%9E%8B%E7%9A%84%E9%97%AE%E9%A2%98%E6%9C%89%E5%9B%BE%E7%BB%93%E6%9E%84%E6%95%B0%E6%8D%AE"><span class="nav-number">2.2.</span> <span class="nav-text">什么类型的问题有图结构数据？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%BE%E5%B1%82%E9%9D%A2%E4%BB%BB%E5%8A%A1"><span class="nav-number">2.2.1.</span> <span class="nav-text">图层面任务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8A%82%E7%82%B9%E5%B1%82%E9%9D%A2%E4%BB%BB%E5%8A%A1"><span class="nav-number">2.2.2.</span> <span class="nav-text">节点层面任务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%B9%E5%B1%82%E9%9D%A2%E4%BB%BB%E5%8A%A1"><span class="nav-number">2.2.3.</span> <span class="nav-text">边层面任务</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E7%94%A8%E4%BA%8E%E5%9B%BE%E9%9D%A2%E5%AF%B9%E7%9A%84%E6%8C%91%E6%88%98"><span class="nav-number">2.3.</span> <span class="nav-text">神经网络用于图面对的挑战</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%BE%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C"><span class="nav-number">3.</span> <span class="nav-text">图神经网络</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84gnn"><span class="nav-number">3.1.</span> <span class="nav-text">最简单的GNN</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%B9%E6%AF%8F%E4%B8%AA%E8%8A%82%E7%82%B9%E8%BF%9B%E8%A1%8C%E9%A2%84%E6%B5%8B"><span class="nav-number">3.1.1.</span> <span class="nav-text">对每个节点进行预测</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B7%B2%E7%BB%8F%E6%9C%89%E8%8A%82%E7%82%B9%E5%90%91%E9%87%8F"><span class="nav-number">3.1.1.1.</span> <span class="nav-text">已经有节点向量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B2%A1%E6%9C%89%E8%8A%82%E7%82%B9%E5%90%91%E9%87%8F"><span class="nav-number">3.1.1.2.</span> <span class="nav-text">没有节点向量</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%B9%E6%AF%8F%E4%B8%AA%E8%BE%B9%E8%BF%9B%E8%A1%8C%E9%A2%84%E6%B5%8B"><span class="nav-number">3.1.2.</span> <span class="nav-text">对每个边进行预测</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%B9%E5%85%A8%E5%B1%80%E5%B1%9E%E6%80%A7%E8%BF%9B%E8%A1%8C%E9%A2%84%E6%B5%8B"><span class="nav-number">3.1.3.</span> <span class="nav-text">对全局属性进行预测</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%BC%E5%90%88"><span class="nav-number">3.1.4.</span> <span class="nav-text">综合</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%97%AE%E9%A2%98"><span class="nav-number">3.1.5.</span> <span class="nav-text">问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%94%B9%E8%BF%9Bgnn"><span class="nav-number">3.2.</span> <span class="nav-text">改进GNN</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8F%90%E5%89%8D%E6%B1%87%E8%81%9A"><span class="nav-number">3.3.</span> <span class="nav-text">提前汇聚</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%B9%E7%9A%84%E4%BF%A1%E6%81%AF%E4%BC%A0%E9%80%92%E7%BB%99%E8%8A%82%E7%82%B9%E5%86%8D%E4%BC%A0%E9%80%92%E7%BB%99%E8%BE%B9"><span class="nav-number">3.3.1.</span> <span class="nav-text">边的信息传递给节点再传递给边</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%A8%E5%B1%80%E4%BF%A1%E6%81%AF"><span class="nav-number">3.3.2.</span> <span class="nav-text">全局信息</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%BC%E5%90%88-1"><span class="nav-number">3.4.</span> <span class="nav-text">综合</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zephon"
+      src="/blog/images/avatar1.gif">
+  <p class="site-author-name" itemprop="name">Zephon</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/blog/archives">
+          <span class="site-state-item-count">217</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/blog/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Zephon-H" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Zephon-H" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/blog/qq1528498238@gmail.com" title="E-Mail → qq1528498238@gmail.com"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zephon</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">1.3m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">20:18</span>
+</div>
+
+<br />
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("04/21/2019 15:54:40");//此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒";
+    }
+setInterval("createtime()",250);
+</script>
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/blog/lib/anime.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/blog/js/utils.js"></script>
+
+<script src="/blog/js/motion.js"></script>
+
+
+<script src="/blog/js/schemes/pisces.js"></script>
+
+
+<script src="/blog/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/blog/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+<script>
+NexT.utils.loadComments(document.querySelector('#lv-container'), () => {
+  window.livereOptions = {
+    refer: location.pathname.replace(CONFIG.root, '').replace('index.html', '')
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+});
+</script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</body>
+</html>

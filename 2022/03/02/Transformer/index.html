@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+<meta name="referrer" content="no-referrer" />
+<meta http-equiv="Content-Security-Policy" ontent="upgrade-insecure-requests">
+  <link rel="apple-touch-icon" sizes="180x180" href="/blog/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blog/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blog/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blog/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blog/css/main.css">
+
+
+<link rel="stylesheet" href="/blog/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.zephon.eu.org","root":"/blog/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Transformer 前言 在之前，已经学习了word2vec、RNN网络，简单了解了LSTM等，现在使用更广泛的是基于Transformer的网络模型。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Transformer">
+<meta property="og:url" content="http://www.zephon.eu.org/blog/2022/03/02/Transformer/index.html">
+<meta property="og:site_name" content="Zephon Blog">
+<meta property="og:description" content="Transformer 前言 在之前，已经学习了word2vec、RNN网络，简单了解了LSTM等，现在使用更广泛的是基于Transformer的网络模型。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302142941621.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302143502415.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302144531779.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302145602826.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302151745753.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302152641307.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302153320947.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302153827224.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302154202422.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302154800554.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302155131969.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302150553196.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302161401734.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302164001217.png">
+<meta property="og:image" content="http://image.zephon.ml/image-20220302164314822.png">
+<meta property="article:published_time" content="2022-03-02T06:16:32.000Z">
+<meta property="article:modified_time" content="2023-07-20T08:32:51.106Z">
+<meta property="article:author" content="Zephon">
+<meta property="article:tag" content="NLP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://image.zephon.ml/image-20220302142941621.png">
+
+<link rel="canonical" href="http://www.zephon.eu.org/blog/2022/03/02/Transformer/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Transformer | Zephon Blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?697784f78fd83128cc519aedf69e3017";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container use-motion">
+    <div class="headband">
+	<a target="_blank" rel="noopener" href="https://github.com/Zephon-H" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	</div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/blog/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zephon Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/blog/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-download">
+
+    <a href="/blog/download/" rel="section"><i class="fa fa-download fa-fw"></i>下载</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/blog/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://www.zephon.eu.org/blog/2022/03/02/Transformer/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blog/images/avatar1.gif">
+      <meta itemprop="name" content="Zephon">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zephon Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Transformer
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-03-02 14:16:32" itemprop="dateCreated datePublished" datetime="2022-03-02T14:16:32+08:00">2022-03-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-07-20 16:32:51" itemprop="dateModified" datetime="2023-07-20T16:32:51+08:00">2023-07-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/blog/categories/NLP/" itemprop="url" rel="index"><span itemprop="name">NLP</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="transformer">Transformer</h1>
+<h2 id="前言">前言</h2>
+<p>在之前，已经学习了word2vec、RNN网络，简单了解了LSTM等，现在使用更广泛的是基于Transformer的网络模型。</p>
+<h2 id="transformer做的是什么">Transformer做的是什么？</h2>
+<blockquote>
+<p>答：用于替代RNN，解决使用一堆RNN时存在的问题</p>
+</blockquote>
+<p>更具体的，在了解Transformer做的是什么之前，需要知道的是在NLP中的机器翻译模型中常见的Seq2Seq网络，也即所谓的编码器+解码器整合的结构，如图中对应的输入是一种语言如中文，输出是另一种语言如英文。</p>
+<p><img src="http://image.zephon.ml/image-20220302142941621.png" /></p>
+<p>中间的模型原来都是放一堆RNN就可以了，既然RNN就可以了，还要提出Transformer干什么呢？</p>
+<h3 id="rnn存在的问题">RNN存在的问题</h3>
+<p>RNN的结构如下图，其后面的输出部分依赖于前面，因此无法做到并行计算，RNN不容易并行计算，但CNN可以啊，为什么不用CNN去替代而是提出使用一种新的Transformer呢？</p>
+<figure>
+<img src="http://image.zephon.ml/image-20220302143502415.png" alt="RNN计算" /><figcaption>RNN计算</figcaption>
+</figure>
+<p>主要是因为如下图，CNN虽然可以并行计算，但是浅层CNN无法考虑长序列，只有深层的CNN才可以考虑到比较多的序列数据，这就意味着需要叠很多层，参数太多。</p>
+<figure>
+<img src="http://image.zephon.ml/image-20220302144531779.png" alt="CNN计算" /><figcaption>CNN计算</figcaption>
+</figure>
+<h3 id="self-attention">Self-Attention</h3>
+<p>为了解决上述RNN和CNN在并行计算和长序列计算中存在的问题，有人提出了使用Self-Attention来取代之前的RNN。</p>
+<p>Attention，一言以蔽之就是注意力机制，顾名思义，”注意力“就是说对于输入的数据，需要关注的点是什么？就与人观看物体一样，视觉中心会在自己关注的地方，而对其它内容则会相对忽视。而Self-Attention则是表示的针对自己而言，”注意力"所在的地方，例如，人在照镜子时，看镜子中的自己，此时也会有一个关注点，表示其注意力。换到具体的自然语言中则是表示连续序列中，不同的词对于其它词的关注情况，如The dog didn't go because it was too tired.这句话中，<code>it</code>与<code>The dot</code>之间的互相关注的程度就会相对比与其它词如<code>was</code>等词要大的多。</p>
+<p>一句话简单概述就是：<code>有一种新的模型层叫Self-Attention，它的输入的输出和RNN是一样的，但是它可以并行计算出输出结果</code></p>
+<p>Self-Attention的总体结构如图，输入输出和RNN是一样的：</p>
+<p><img src="http://image.zephon.ml/image-20220302145602826.png" /></p>
+<h4 id="self-attention的内部">Self-Attention的内部</h4>
+<h5 id="self-attention的计算过程">Self-Attention的计算过程</h5>
+<p><img src="http://image.zephon.ml/image-20220302151745753.png" /></p>
+<p>如图，对于输入<span class="math inline">\(x^1\sim x^4\)</span>，通过词嵌入编码将文本转换成对应的词向量<span class="math inline">\(a^1\sim a^4\)</span>，然后输入到Self-Attention层，Self-Attention层进行的计算：</p>
+<p>对于每个输入<span class="math inline">\(a^i\)</span>，分别乘以三个权重<span class="math inline">\(W^q、W^k、W^v\)</span>变换得到三个向量<span class="math inline">\(q^i,k^i,v^i\)</span></p>
+<p>计算公式如下： <span class="math display">\[
+q^i = W^qa^i \\
+k^i = W^ka^i \\
+v^i = W^ka^i
+\]</span></p>
+<blockquote>
+<p>其中：</p>
+<p><span class="math inline">\(q\)</span>：意思是query，表示用于查询其它的词</p>
+<p><span class="math inline">\(k\)</span>：意思是key，表示用于等待被其它的q查询的</p>
+<p><span class="math inline">\(v\)</span>：意思是value，表示实际的特征信息</p>
+</blockquote>
+<p><img src="http://image.zephon.ml/image-20220302152641307.png" /></p>
+<p>如图，计算出了<span class="math inline">\(q^i,k^i,v^i\)</span>后，就需要进行attention计算了，计算过程：</p>
+<p>使用每个<span class="math inline">\(q^i\)</span>去对每个<span class="math inline">\(k^i\)</span>进行attention计算，计算公式为： <span class="math display">\[
+a_{i,j} = \frac{q^i\cdot k^j}{\sqrt{d}} (图中表示的i=1的情况)
+\]</span></p>
+<blockquote>
+<p>注：这里为什么需要除以<span class="math inline">\(\sqrt{d}\)</span>呢？(d表示<span class="math inline">\(q\)</span>和<span class="math inline">\(k\)</span>的维度)</p>
+<p>主要是因为<span class="math inline">\(q\)</span>和<span class="math inline">\(k\)</span>的内积的数值会随它们的维度越来越大，导致其方差也会过大，因此通过除以d来维平衡</p>
+</blockquote>
+<p><img src="http://image.zephon.ml/image-20220302153320947.png" /></p>
+<p>如图，对于上一步的<span class="math inline">\(a_{i,j}\)</span>进行softmax计算，即将每个<span class="math inline">\(a_{i,j}\)</span>取e次幂，再除以所有<span class="math inline">\(exp(a_{i,j})\)</span>的和，公式如下： <span class="math display">\[
+\hat a_{i,j} = \frac{exp(a_{i,j})}{\sum_k exp(a_{i,k})}(图中表示的i=1的情况)
+\]</span> <img src="http://image.zephon.ml/image-20220302153827224.png" /></p>
+<p>如图，将得到的<span class="math inline">\(\hat a_{i,j}\)</span>与每个<span class="math inline">\(v^{i}\)</span>相乘再求和，得到的结果就是最终输出<span class="math inline">\(b^{i}\)</span>了，公式如下： <span class="math display">\[
+b^i = \sum_{j}\hat a_{i,j}v^{j} (图中表示的i=1的情况)
+\]</span></p>
+<h5 id="self-attention计算的矩阵表示">Self-Attention计算的矩阵表示</h5>
+<p><img src="http://image.zephon.ml/image-20220302154202422.png" /></p>
+<p>如图，在实际应用中，通常会采用矩阵计算来加快计算速度，因此，对符号进行以下说明： $$</p>
+<p>Q：表示q组成的矩阵 \ K：表示k组成的矩阵 \ V：表示v组成的矩阵 \ W^q：表示生成q的权重矩阵 \ W^k：表示生成k的权重矩阵 \ W^v：表示生成v的权重矩阵 \ I：表示输入转换后的词向量矩阵，对应之前的a \ $$ <img src="http://image.zephon.ml/image-20220302154800554.png" /></p>
+<p>如图，在注意力计算时，符号如下： <span class="math display">\[
+A：表示k与q注意力计算即内积后的值 \hfill \\
+\hat A：表示a_{i,j}经过softmax后的\hat a_{i,j} \hfill \\
+计算公式：A = K^TQ \hfill
+\]</span> <img src="http://image.zephon.ml/image-20220302155131969.png" /></p>
+<p>如图是求最终输出的过程，符号表示如下： <span class="math display">\[
+V：表示由v构成的矩阵 \hfill \\
+O：表示最终输出b构成的矩阵 \hfill \\
+计算公式：O=V\hat A \hfill
+\]</span></p>
+<blockquote>
+<p>注：类似的，将a生成q,k,v时，如果生成多组q,k,v，然后再将得到的多个特征(输出O)拼接在一起，最后还可以选择通过一层全连接层来降维，这样一来就是所谓的<code>多头注意力机制</code>了，</p>
+</blockquote>
+<h2 id="transformer的整体架构">Transformer的整体架构</h2>
+<p><img src="http://image.zephon.ml/image-20220302150553196.png" /></p>
+<p>如图，Transformer主要包括了位置编码、编码器、解码器</p>
+<h3 id="位置编码">位置编码</h3>
+<p>由Self-Attention计算的过程可以发现，Self-Attention中每个词都会考虑整个序列的加权，因此其出现位置并不会对结果有什么影响，但这样就与实际不符了，因为我们使用Self-Attention处理的就是文本序列等数据，位置信息对其应该产生影响的，因此，这里就通过位置编码对数据进行了处理。</p>
+<p>具体的处理过程如下：</p>
+<p>假设输入转换后的词向量为<span class="math inline">\(x_i\)</span>，对应的位置编码为<span class="math inline">\(t_i\)</span>，则得到的新的具有位置(或时间)信息的词向量为<span class="math inline">\(x&#39;_i=x_i+t_i\)</span></p>
+<p>而这里的<span class="math inline">\(t_i\)</span>是如何计算的呢？</p>
+<p>方法有很多，Transformer通常采用的方法是使用周期性函数进行变换，公式如下： <span class="math display">\[
+PE_{(pos, 2i)} = \sin (pos/10000^{2i/d_{model})}) \hfill \\
+PE_{(pos,2i+1)} = \cos (pos/10000^{2i/d_model}) \hfill
+\]</span></p>
+<h3 id="编码器">编码器</h3>
+<p><img src="http://image.zephon.ml/image-20220302161401734.png" /></p>
+<p>如图，编码器主要由注意力层、前向反馈层构成，对于输出的单词，先经过编码处理得到词向量<span class="math inline">\(x_i\)</span>，如图中的<span class="math inline">\(x_1,x_2\)</span>，然后将词向量输入到注意力层，得到输出<span class="math inline">\(z_1,z_2\)</span>，<span class="math inline">\(z_1,z_2\)</span>都是包含<span class="math inline">\(x_1\)</span>和<span class="math inline">\(x_2\)</span>信息的，只是可能<span class="math inline">\(z_1\)</span>更关注<span class="math inline">\(x_1\)</span>而<span class="math inline">\(z_2\)</span>更关注<span class="math inline">\(x_2\)</span>，然后再将<span class="math inline">\(z_1,z_2\)</span>输入到全连接层，得到一组新的能更好表示信息的向量<span class="math inline">\(r_1,r_2\)</span></p>
+<p>同样的，这组向量<span class="math inline">\(r_1,r_2\)</span>也可以作为下一个编码器的输入<span class="math inline">\(x_1,x_2\)</span>，同理进行计算。</p>
+<h3 id="解码器">解码器</h3>
+<p>解码器与编码器不同点在于，解码器的Attention的计算不同，并且加入了MASK机制，其后面的Attention中的K和V是来自于编码器，而只有Q是来自于原数据计算，而MASK机制则是将输入进行掩码处理，这里的输入在训练时指的是将真实值作为输入，因此需要进行MASK，而在测试过程中，则是使用上一时间步生成的结果作为输入</p>
+<h3 id="一些其它的处理">一些其它的处理</h3>
+<h4 id="normalize">Normalize</h4>
+<p><img src="http://image.zephon.ml/image-20220302164001217.png" /></p>
+<p>这里的归一化用的不是常见的Batch Normalization，而是Layer Normalization</p>
+<ul>
+<li><p>Batch Normalization</p>
+<p>如图，竖着的红框表示BN，BN是对Batch中的每个数据每个特征按照Batch这一维度使其均值为0，方差为1</p></li>
+<li><p>Layer Normalization</p>
+<p>横着的红框表示LN，LN是对每个数据的每个特征在其数据这一维度下保持均值为0，方差为1</p></li>
+</ul>
+<h4 id="add">Add</h4>
+<p><img src="http://image.zephon.ml/image-20220302164314822.png" /></p>
+<p>Add表示的是残差连接，和残差网络中的残差连接一样，也就是说将数据处理后的结果加到原来的输入上，保证了原始数据的存在</p>
+<h3 id="需要知道的几个问题">需要知道的几个问题</h3>
+<h4 id="输入如何编码">输入如何编码？</h4>
+<h4 id="输出结果是什么">输出结果是什么？</h4>
+<h4 id="attention的目的">Attention的目的？</h4>
+<h4 id="如何组合在一起">如何组合在一起？</h4>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>Zephon
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://www.zephon.eu.org/blog/2022/03/02/Transformer/" title="Transformer">http://www.zephon.eu.org/blog/2022/03/02/Transformer/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/blog/tags/NLP/" rel="tag"><i class="fa fa-tag"></i> NLP</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/blog/2021/12/17/%E6%A8%A1%E5%9E%8B%E9%87%8F%E5%8C%96%E4%B8%AD%E7%9A%84%E6%BF%80%E6%B4%BB%E5%87%BD%E6%95%B0/" rel="prev" title="模型量化中的激活函数">
+      <i class="fa fa-chevron-left"></i> 模型量化中的激活函数
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/blog/2022/03/07/%E5%9F%BA%E4%BA%8E%E5%8F%AF%E5%BE%AE%E9%80%80%E7%81%AB%E6%8C%87%E7%A4%BA%E5%99%A8%E6%90%9C%E7%B4%A2%E7%9A%84%E8%87%AA%E5%8A%A8%E9%80%9A%E9%81%93%E4%BF%AE%E5%89%AA/" rel="next" title="DAIS:Automatic_Channel_Pruning_via_Differentiable_Annealing_Indicator_Search">
+      DAIS:Automatic_Channel_Pruning_via_Differentiable_Annealing_Indicator_Search <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="lv-container" data-id="city" data-uid="MTAyMC80MDY3OS8xNzIwNA=="></div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#transformer"><span class="nav-number">1.</span> <span class="nav-text">Transformer</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#transformer%E5%81%9A%E7%9A%84%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">1.2.</span> <span class="nav-text">Transformer做的是什么？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#rnn%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">1.2.1.</span> <span class="nav-text">RNN存在的问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#self-attention"><span class="nav-number">1.2.2.</span> <span class="nav-text">Self-Attention</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#self-attention%E7%9A%84%E5%86%85%E9%83%A8"><span class="nav-number">1.2.2.1.</span> <span class="nav-text">Self-Attention的内部</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#self-attention%E7%9A%84%E8%AE%A1%E7%AE%97%E8%BF%87%E7%A8%8B"><span class="nav-number">1.2.2.1.1.</span> <span class="nav-text">Self-Attention的计算过程</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#self-attention%E8%AE%A1%E7%AE%97%E7%9A%84%E7%9F%A9%E9%98%B5%E8%A1%A8%E7%A4%BA"><span class="nav-number">1.2.2.1.2.</span> <span class="nav-text">Self-Attention计算的矩阵表示</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#transformer%E7%9A%84%E6%95%B4%E4%BD%93%E6%9E%B6%E6%9E%84"><span class="nav-number">1.3.</span> <span class="nav-text">Transformer的整体架构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%8D%E7%BD%AE%E7%BC%96%E7%A0%81"><span class="nav-number">1.3.1.</span> <span class="nav-text">位置编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E7%A0%81%E5%99%A8"><span class="nav-number">1.3.2.</span> <span class="nav-text">编码器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A7%A3%E7%A0%81%E5%99%A8"><span class="nav-number">1.3.3.</span> <span class="nav-text">解码器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%BA%9B%E5%85%B6%E5%AE%83%E7%9A%84%E5%A4%84%E7%90%86"><span class="nav-number">1.3.4.</span> <span class="nav-text">一些其它的处理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#normalize"><span class="nav-number">1.3.4.1.</span> <span class="nav-text">Normalize</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#add"><span class="nav-number">1.3.4.2.</span> <span class="nav-text">Add</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9C%80%E8%A6%81%E7%9F%A5%E9%81%93%E7%9A%84%E5%87%A0%E4%B8%AA%E9%97%AE%E9%A2%98"><span class="nav-number">1.3.5.</span> <span class="nav-text">需要知道的几个问题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E5%A6%82%E4%BD%95%E7%BC%96%E7%A0%81"><span class="nav-number">1.3.5.1.</span> <span class="nav-text">输入如何编码？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E7%BB%93%E6%9E%9C%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">1.3.5.2.</span> <span class="nav-text">输出结果是什么？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attention%E7%9A%84%E7%9B%AE%E7%9A%84"><span class="nav-number">1.3.5.3.</span> <span class="nav-text">Attention的目的？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E7%BB%84%E5%90%88%E5%9C%A8%E4%B8%80%E8%B5%B7"><span class="nav-number">1.3.5.4.</span> <span class="nav-text">如何组合在一起？</span></a></li></ol></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zephon"
+      src="/blog/images/avatar1.gif">
+  <p class="site-author-name" itemprop="name">Zephon</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/blog/archives">
+          <span class="site-state-item-count">217</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/blog/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Zephon-H" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Zephon-H" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/blog/qq1528498238@gmail.com" title="E-Mail → qq1528498238@gmail.com"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zephon</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">1.3m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">20:18</span>
+</div>
+
+<br />
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("04/21/2019 15:54:40");//此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒";
+    }
+setInterval("createtime()",250);
+</script>
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/blog/lib/anime.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/blog/js/utils.js"></script>
+
+<script src="/blog/js/motion.js"></script>
+
+
+<script src="/blog/js/schemes/pisces.js"></script>
+
+
+<script src="/blog/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/blog/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+<script>
+NexT.utils.loadComments(document.querySelector('#lv-container'), () => {
+  window.livereOptions = {
+    refer: location.pathname.replace(CONFIG.root, '').replace('index.html', '')
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+});
+</script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</body>
+</html>

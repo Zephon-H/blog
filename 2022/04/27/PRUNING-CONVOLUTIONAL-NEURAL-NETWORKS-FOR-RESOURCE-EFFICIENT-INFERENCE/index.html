@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+<meta name="referrer" content="no-referrer" />
+<meta http-equiv="Content-Security-Policy" ontent="upgrade-insecure-requests">
+  <link rel="apple-touch-icon" sizes="180x180" href="/blog/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/blog/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/blog/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/blog/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/blog/css/main.css">
+
+
+<link rel="stylesheet" href="/blog/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.zephon.eu.org","root":"/blog/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="译：《用于资源高效推理的卷积神经网络剪枝》 论文地址：PRUNING CONVOLUTIONAL NEURAL NETWORKS FOR RESOURCE EFFICIENT INFERENCE Motivation">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《PRUNING CONVOLUTIONAL NEURAL NETWORKS FOR RESOURCE EFFICIENT INFERENCE》">
+<meta property="og:url" content="http://www.zephon.eu.org/blog/2022/04/27/PRUNING-CONVOLUTIONAL-NEURAL-NETWORKS-FOR-RESOURCE-EFFICIENT-INFERENCE/index.html">
+<meta property="og:site_name" content="Zephon Blog">
+<meta property="og:description" content="译：《用于资源高效推理的卷积神经网络剪枝》 论文地址：PRUNING CONVOLUTIONAL NEURAL NETWORKS FOR RESOURCE EFFICIENT INFERENCE Motivation">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://image.zephon.ml/image-20220427104514709.png">
+<meta property="article:published_time" content="2022-04-27T08:31:15.000Z">
+<meta property="article:modified_time" content="2023-07-20T08:32:51.102Z">
+<meta property="article:author" content="Zephon">
+<meta property="article:tag" content="论文阅读">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://image.zephon.ml/image-20220427104514709.png">
+
+<link rel="canonical" href="http://www.zephon.eu.org/blog/2022/04/27/PRUNING-CONVOLUTIONAL-NEURAL-NETWORKS-FOR-RESOURCE-EFFICIENT-INFERENCE/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>《PRUNING CONVOLUTIONAL NEURAL NETWORKS FOR RESOURCE EFFICIENT INFERENCE》 | Zephon Blog</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?697784f78fd83128cc519aedf69e3017";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container use-motion">
+    <div class="headband">
+	<a target="_blank" rel="noopener" href="https://github.com/Zephon-H" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	</div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/blog/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Zephon Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/blog/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-download">
+
+    <a href="/blog/download/" rel="section"><i class="fa fa-download fa-fw"></i>下载</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/blog/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://www.zephon.eu.org/blog/2022/04/27/PRUNING-CONVOLUTIONAL-NEURAL-NETWORKS-FOR-RESOURCE-EFFICIENT-INFERENCE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/blog/images/avatar1.gif">
+      <meta itemprop="name" content="Zephon">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Zephon Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          《PRUNING CONVOLUTIONAL NEURAL NETWORKS FOR RESOURCE EFFICIENT INFERENCE》
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-04-27 16:31:15" itemprop="dateCreated datePublished" datetime="2022-04-27T16:31:15+08:00">2022-04-27</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2023-07-20 16:32:51" itemprop="dateModified" datetime="2023-07-20T16:32:51+08:00">2023-07-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/blog/categories/%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB/" itemprop="url" rel="index"><span itemprop="name">论文阅读</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>译：《用于资源高效推理的卷积神经网络剪枝》</p>
+<p>论文地址：<a target="_blank" rel="noopener" href="https://arxiv.org/pdf/1611.06440.pdf">PRUNING CONVOLUTIONAL NEURAL NETWORKS FOR RESOURCE EFFICIENT INFERENCE</a></p>
+<h1 id="motivation">Motivation</h1>
+<p>神经网络剪枝最早的是工作是OBD和OBS，利用二阶泰勒展开选择要删除的参数，使用剪枝作为正则化来提升训练和泛化，但这种方法需要额外地计算海森矩阵，这样会给标准微调增加内存和计算花费。</p>
+<p>与本文类似的工作有一个是在特征图和核级别的卷积层进行结构化剪枝的，以及在核函数内用规则的步长稀疏性进行剪枝。剪枝是通过粒子滤波完成，其中的配置通过误分类率来加权，这种方法在小的CNNs上表现良好，但无法解决大的CNNs</p>
+<p>Han等人引入使用更强的<span class="math inline">\(\ell_2\)</span>正则项微调和删除低于预定义阈值的参数这一更简单的方法。这样非结构化剪枝方法对于模型压缩非常有效，但这种压缩由于现代硬件限制并不能直接转换成更快的推理</p>
+<p>因此，有人设计了专门的硬件来有效地推理具有内核稀疏性的网络，但这种方法需要很长的微调时间，可能会超过原始网络的训练时间的3倍或更多。</p>
+<p>之后还有人提出了一种基于组稀疏性的网络参数正则化方法，对不重要的参数进行惩罚，但基于正则化的剪枝技术需要对每一层进行敏感性分析，这又增加了额外的计算。</p>
+<p>基于以上工作，作者提出了他们的方法，作者结合基于贪心标准剪枝与通过反向传播微调的方法，该方法依赖于所有层的标准的全局重新缩放，并且不需要敏感性估计。此外，该方法速度更快，因为是直接剪枝不重要的参数，而不是等待正则化的优化使得它们的值足够小。</p>
+<h1 id="方法简介">方法简介</h1>
+<p><img src="http://image.zephon.ml/image-20220427104514709.png" /></p>
+<p>本文剪枝方法对应的由三步组成：</p>
+<ol type="1">
+<li>微调网络，直到在目标任务上收敛</li>
+<li>剪枝与进一步微调交替迭代</li>
+<li>在达到正确率与剪枝目标的权衡后停止</li>
+</ol>
+<p>过程很简单，但它的成功取决于正确的修剪标准</p>
+<p>假设训练集样本：<span class="math inline">\(\mathcal D = \{\mathcal X = \{X_0,X_1,\cdots,X_N\},\mathcal Y=\{y_0,y_1,\cdots,y_N\}\}\)</span>，网络的参数<span class="math inline">\(\mathcal W = \{(W_1^1,b_1^1),(W_2^2,b_2^2),\cdots,(W_L^{C_\ell},b_L^{C_\ell})\}\)</span>被优化到最小代价值<span class="math inline">\(\mathcal C(\mathcal D|\mathcal W)\)</span>，代价函数<span class="math inline">\(\mathcal C(.)\)</span>使用最多的是负对数似然函数，代价函数的选择与剪枝无关，并且仅取决于原始网络要解决的任务。在迁移学习的情况下，作者采用在相关但不同的数据集上用参数<span class="math inline">\(\mathcal W_0\)</span>预训练大型网络。</p>
+<p>在剪枝过程中，细化参数的子集以保持调整后的网络的精度，即<span class="math inline">\(\mathcal C(\mathcal D|\mathcal W&#39;)\approx \mathcal C(\mathcal D|\mathcal W)\)</span>，对应的就是优化： <span class="math display">\[
+\min_{\mathcal W&#39;}|\mathcal C(\mathcal D|\mathcal W&#39;)-\mathcal C(\mathcal D|\mathcal W)|\quad s.t. \quad ||\mathcal W&#39;||_0 \le B
+\]</span> 其中，<span class="math inline">\(||\mathcal W&#39;||_0\)</span>中的<span class="math inline">\(\ell_0\)</span>范数限定了<span class="math inline">\(\mathcal W&#39;\)</span>中非零参数B的个数，直观地，当<span class="math inline">\(\mathcal W&#39; = \mathcal W\)</span>时会达到误差函数的全局最小值，但<span class="math inline">\(||\mathcal W&#39;||_0\)</span>也会有它的最大值</p>
+<p>找到一个好的参数子集，同时保持一个尽可能接近原始的代价值是一个组合问题，它需要对选择数据子集的代价函数进行<span class="math inline">\(2^{|\mathcal W|}\)</span>次评估，这么大的计算量几乎不可能实现。但作者研究了一种贪心方法去不完全精确地解决这一优化问题。</p>
+<p>最开始是所有参数<span class="math inline">\(\mathcal W\)</span>，迭代地识别并移除最不重要的参数，通过在每次迭代中移除参数，确保满足<span class="math inline">\(\mathcal W&#39;\)</span>上的<span class="math inline">\(\ell_0\)</span>的限制</p>
+<p>用<span class="math inline">\(Z_\ell \in \mathbb R^{H_\ell \times W_\ell \times C_ell}\)</span>表示一级图像特征图，特征图也可以表示为网络的输入<span class="math inline">\(Z_0\)</span>，或卷积层的输出<span class="math inline">\(Z_\ell,\ell\in [1,2,\cdots,L]\)</span>，单个特征图可以表示为<span class="math inline">\(Z_\ell^{(k)},k\in[1,2,\cdots,C_\ell]\)</span>，一个卷积层<span class="math inline">\(\ell\)</span>上进行输入特征图为<span class="math inline">\(Z_{\ell-1}\)</span>，核参数为<span class="math inline">\(W_\ell^{(k)}\in\mathbb R^{\mathcal C_{\ell-1}\times p\times p}\)</span>的卷积操作(<span class="math inline">\(*\)</span>)： <span class="math display">\[
+Z_\ell^{(k)}=g_\ell^{(k)}\mathcal R(Z_{\ell-1}*W_\ell^{(k)}+b_\ell^{(k)})
+\]</span> 其中<span class="math inline">\(Z_\ell^{(k)}\in \mathbb R^{H_\ell \times W_\ell}\)</span>是卷积结果，<span class="math inline">\(b_\ell^{(k)}\)</span>表示偏置，这里<span class="math inline">\(g_\ell \in \{0, 1\}^{C_\ell}\)</span>是作者引入的剪枝率，是确定在前向传播期间是否包括或删除特定特征图的外部开关，这样当<span class="math inline">\(g\)</span>被矢量化时：<span class="math inline">\(\mathcal W&#39; = g\mathcal W\)</span></p>
+<h2 id="oracle剪枝">Oracle剪枝</h2>
+<p>最小化完整模型和剪枝模型的准确率的不同取决于区分“最不重要参数”的标准，也被称为"显著程度(saliency)"，最好的标准就是对每个参数都进行精确的经验评估，作者称之为<strong>oracle</strong>标准，是通过轮流对非零参数<span class="math inline">\(w\in \mathcal W&#39;\)</span>进行消融，然后记录不同的"代价(cost)"</p>
+<p>作者将这种oracle重要性估计分为两种：</p>
+<ol type="1">
+<li><em>oracle-loss</em>，将重要性量化为损失的变化：<span class="math inline">\(\mathcal C(\mathcal D|\mathcal W&#39;)-\mathcal C(\mathcal D|\mathcal W)\)</span></li>
+<li><em>oracle-abs</em>，采用差的绝对值，<span class="math inline">\(|\mathcal C(\mathcal D|\mathcal W&#39;)-\mathcal C(\mathcal D|\mathcal W)|\)</span></li>
+</ol>
+<p>这两种都不鼓励剪枝会增加损失，但<em>oracle-loss</em>鼓励会减少损失的剪枝，而<em>oracle-abs</em>则是根据损失变化的比例对剪枝进行惩罚，而不考虑其变化的方向</p>
+<p>虽然<strong>oracle</strong>对于贪心的过程是最优的，但它的计算成本太高，需要对训练数据集进行<span class="math inline">\(||\mathcal W&#39;||_0\)</span>次评估，对其余每个非零参数进行一次评估</p>
+<h2 id="剪枝标准">剪枝标准</h2>
+<p>还有很多比<strong>oracle</strong>更高效的启发式标准，对于评估特征图的重要性的情况合理的标准包括：核权重的<span class="math inline">\(\ell_2\)</span>范数、均值、标准差或特征图激活的百分比的组合，以及激活值和预测值之间的互信息，下面将对这些标准进行描述，还有作者提出的基于泰勒展开的新的标准</p>
+<h3 id="最小权重">最小权重</h3>
+<p>根据核权重大小进行剪枝可能是最简单的标准， 并且在微调时不需要任何额外的计算。该标准评估可表示为：<span class="math inline">\(\Theta_{MV}:\mathbb R^{\mathcal C_{\ell-1}\times p\times p} \rightarrow \mathbb R\)</span>，<span class="math inline">\(\Theta_{MW}(w)=\frac{1}{|w|}\sum_iw_i^2\)</span>，其中<span class="math inline">\(|w|\)</span>是矢量化后权重集的维度，这么做的原因是：具有低的<span class="math inline">\(\ell_2\)</span>范数可以比具有高范数检测更不重要的特征</p>
+<h3 id="激活">激活</h3>
+<p><strong>ReLU</strong>激活函数的流行的原因之一就是诱导激活中的稀疏性，允许卷积层充当特征检测器。因此可以假设如果激活值(输出特征图)较小，则该特征检测器对于当前预测任务不重要，可以通过平均激活进行评估：<span class="math inline">\(\Theta_{MA}:\mathbb R^{H_\ell \times W_\ell \times C_\ell}\rightarrow \mathbb R\)</span>，<span class="math inline">\(\Theta_{MA}(a)=\frac{1}{|a|}\sum_i a_i\)</span>，激活<span class="math inline">\(a=Z_l^{(k)}\)</span>，或者通过激活标准差<span class="math inline">\(\Theta_{MA_{std}}(a)=\sqrt{\frac{1}{|a|}\sum_i(a_i-\mu_a)^2}\)</span></p>
+<h3 id="互信息">互信息</h3>
+<p>互信息是对一个变量中有关另一个变量的信息量的一种度量，将互信息作为剪枝标准：<span class="math inline">\(\Theta_{MI}:\mathbb R^{H_\ell}\times W_\ell \times C_\ell \rightarrow \mathbb R\)</span>，<span class="math inline">\(\Theta_{MI}(a)=MI(a, y)\)</span>，其中<span class="math inline">\(y\)</span>是神经网络目标值，<strong>MI</strong>是为连续值定义的，因此为了简化计算，作者将其换成为量化变量定义的信息增益(<strong>IG</strong>)：<span class="math inline">\(IG(y|x)=H(x)+H(y)-H(x,y)\)</span>，其中<span class="math inline">\(H(x)\)</span>是变量<span class="math inline">\(x\)</span>的熵，通过积累大量更新的激活值和真实值，然后量化这些值并计算<strong>IG</strong></p>
+<h3 id="泰勒展开">泰勒展开</h3>
+<p>作者将剪枝看成优化问题，尝试找到具有有限数量的非零元素的<span class="math inline">\(\mathcal W&#39;\)</span>来最小化<span class="math inline">\(|\Delta \mathcal C(h_i)|=|\mathcal C(\mathcal D|\mathcal W&#39;)-\mathcal C(\mathcal D|\mathcal W)|\)</span>，然后基于泰勒展开方法直接估计移除特定参数后损失函数的改变，假设<span class="math inline">\(h_i\)</span>是参数<span class="math inline">\(i\)</span>产生的输出，<span class="math inline">\(h=\{z_0^{(1)},z_0^{(2)},\cdots,z_L^{(C_\ell)}\}\)</span>，为了符号方便，代价函数同样依赖于参数和参数计算的输出：<span class="math inline">\(\mathcal C(\mathcal D|h_i)=\mathcal C(\mathcal D|(w,b)_i)\)</span>，假设参数独立则有： <span class="math display">\[
+|\Delta \mathcal C(h_i)|=|\mathcal C(\mathcal D,h_i=0)-\mathcal C(\mathcal D,h_i)|
+\]</span> 其中<span class="math inline">\(\mathcal C(\mathcal D,h_i=0)\)</span>是如果输出<span class="math inline">\(h_i\)</span>被剪枝的代价值，<span class="math inline">\(\mathcal C(\mathcal D,h_i)\)</span>是如果它没有被剪枝的代价值，虽然参数实际上是相互依赖的，但在训练过程中的每个梯度步骤都做了独立假设</p>
+<p>为了估计<span class="math inline">\(\Delta \mathcal C(h_i)\)</span>，使用一次泰勒多项式，对于函数<span class="math inline">\(f(x)\)</span>，在<span class="math inline">\(x=a\)</span>处的泰勒展开为： <span class="math display">\[
+f(x)=\sum_{p=0}^P\frac{f(^{(p)}(a)}{p!}(x-a)^p+R_p(x)
+\]</span> 其中<span class="math inline">\(f^{(p)}(a)\)</span>是<span class="math inline">\(f\)</span>在a点的<span class="math inline">\(p\)</span>阶导数，<span class="math inline">\(R_p(x)\)</span>是<span class="math inline">\(p\)</span>阶余项，因此，使用一阶泰勒展开估计<span class="math inline">\(\mathcal C(\mathcal D,h_i=0)\)</span>： <span class="math display">\[
+\mathcal C(\mathcal D,h_i=0)=\mathcal C(\mathcal D,h_i)-\frac{\delta \mathcal C}{\delta h_i}h_i+R_1(h_i=0)
+\]</span> 余项可以用拉格朗日计算： <span class="math display">\[
+R_1(h_i=0)=\frac{\delta^2\mathcal C}{\delta(h_i^2=\xi)}\frac{h_i^2}{2}
+\]</span> 其中<span class="math inline">\(\xi\)</span>是介于<span class="math inline">\(0\)</span>到<span class="math inline">\(h_i\)</span>之间的实数，但作者这里忽略了一阶余项，因为其需要大量计算，也部分因为广泛使用ReLU激活函数可以使得这一项很小</p>
+<p>最后，通过整合上述可以推出：<span class="math inline">\(\Theta_{TE}:\mathbb R^{H_l\times W_l\times C_l}\rightarrow \mathbb R^+\)</span> <span class="math display">\[
+\Theta_{TE}(h_i)=|\Delta \mathcal C(h_i)|=|\mathcal C(\mathcal D,h_i)-\frac{\delta \mathcal C}{\delta h_i}h_i-\mathcal C(\mathcal D,h_i)|=|\frac{\delta \mathcal C}{\delta h_i}h_i|
+\]</span> 这一标准可以剪去代价函数梯度几乎平坦的参数，该方法需要激活值与代价函数梯度的累计，这很容易从反向传播的相同计算中计算。</p>
+<p>对于多变量输出如特征图： <span class="math display">\[
+\Theta_{TE}(z_l^{(k)})=|\frac{1}{M}\sum_m\frac{\delta \mathcal C}{\delta z_{l,m}^{(k)}}z_{l,m}^{(k)}|
+\]</span> 其中M是特征图向量长度，对于T&gt;1个样本的小批量，分别计算每个样本的标准，并在T上求平均值</p>
+<h3 id="与obdoptimal-brain-damage的关系">与OBD(Optimal Brain Damage)的关系</h3>
+<p>上面提出的泰勒标准依赖于通过移除特征图造成的损失的变化估计。其核心思想与OBD相同。而泰勒标准只是更仔细地考虑这些差异。</p>
+<h3 id="零点的平均百分比apoz">零点的平均百分比(APoZ)</h3>
+<p>前面有人提出过利用激活稀疏性进行网络修剪，REU激活函数在推理过程中施加稀疏性，输出端正向激活的平均百分比可以确定神经元的重要性。直观来说，这是一个好的标准，然而无论网络的目标是什么，第一层的特征地图都有类似的APoZ，因为它们学习成为类似<strong>Gabor</strong>的滤波器。我们将使用APoZ来评估功能地图的显著程度</p>
+<h2 id="标准化">标准化</h2>
+<p>一些标准返回的原始值，其大小随网络中的参数所在层的深度而变化 ，简单的基于层的<span class="math inline">\(\ell_2\)</span>标准化可以实现跨层适当重新缩放： <span class="math display">\[
+\hat \Theta(Z_l^{(k)}) = \frac{\Theta(Z_l^{(k)})}{\sqrt{\sum_j(\Theta(Z_l^{(j)}))^2}}
+\]</span></p>
+<h2 id="flops正则化剪枝">FLOPs正则化剪枝</h2>
+<p>使用剪枝的主要原因之一就是为了降低网络操作数，为了将这考虑进去，作者引入FLOPs正则化： <span class="math display">\[
+\Theta(z_l^{(k)}) = \Theta(z_l^{(k)})-\lambda\Theta_l^{flops}
+\]</span> 其中<span class="math inline">\(\lambda\)</span>控制正则化的量，在实验中作者设置<span class="math inline">\(\lambda=10^{-3}\)</span>，<span class="math inline">\(\Theta_l^{flops}\)</span>则是在卷积被实现为滑动窗口的假设下计算的，还可以使用其它正则化条件如：存储大小、核大小或内存占用等</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>Zephon
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://www.zephon.eu.org/blog/2022/04/27/PRUNING-CONVOLUTIONAL-NEURAL-NETWORKS-FOR-RESOURCE-EFFICIENT-INFERENCE/" title="《PRUNING CONVOLUTIONAL NEURAL NETWORKS FOR RESOURCE EFFICIENT INFERENCE》">http://www.zephon.eu.org/blog/2022/04/27/PRUNING-CONVOLUTIONAL-NEURAL-NETWORKS-FOR-RESOURCE-EFFICIENT-INFERENCE/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/blog/tags/%E8%AE%BA%E6%96%87%E9%98%85%E8%AF%BB/" rel="tag"><i class="fa fa-tag"></i> 论文阅读</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/blog/2022/04/26/PRUNING-FILTERS-FOR-EFFICIENT-CONVNETS/" rel="prev" title="《PRUNING FILTERS FOR EFFICIENT CONVNETS》">
+      <i class="fa fa-chevron-left"></i> 《PRUNING FILTERS FOR EFFICIENT CONVNETS》
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/blog/2022/04/28/Channel-Pruning-for-Accelerating-Very-Deep-Neural-Networks/" rel="next" title="《Channel Pruning for Accelerating Very Deep Neural Networks》">
+      《Channel Pruning for Accelerating Very Deep Neural Networks》 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="lv-container" data-id="city" data-uid="MTAyMC80MDY3OS8xNzIwNA=="></div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#motivation"><span class="nav-number">1.</span> <span class="nav-text">Motivation</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%96%B9%E6%B3%95%E7%AE%80%E4%BB%8B"><span class="nav-number">2.</span> <span class="nav-text">方法简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#oracle%E5%89%AA%E6%9E%9D"><span class="nav-number">2.1.</span> <span class="nav-text">Oracle剪枝</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%AA%E6%9E%9D%E6%A0%87%E5%87%86"><span class="nav-number">2.2.</span> <span class="nav-text">剪枝标准</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%80%E5%B0%8F%E6%9D%83%E9%87%8D"><span class="nav-number">2.2.1.</span> <span class="nav-text">最小权重</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BF%80%E6%B4%BB"><span class="nav-number">2.2.2.</span> <span class="nav-text">激活</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%92%E4%BF%A1%E6%81%AF"><span class="nav-number">2.2.3.</span> <span class="nav-text">互信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%B0%E5%8B%92%E5%B1%95%E5%BC%80"><span class="nav-number">2.2.4.</span> <span class="nav-text">泰勒展开</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8Eobdoptimal-brain-damage%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="nav-number">2.2.5.</span> <span class="nav-text">与OBD(Optimal Brain Damage)的关系</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9B%B6%E7%82%B9%E7%9A%84%E5%B9%B3%E5%9D%87%E7%99%BE%E5%88%86%E6%AF%94apoz"><span class="nav-number">2.2.6.</span> <span class="nav-text">零点的平均百分比(APoZ)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%87%E5%87%86%E5%8C%96"><span class="nav-number">2.3.</span> <span class="nav-text">标准化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#flops%E6%AD%A3%E5%88%99%E5%8C%96%E5%89%AA%E6%9E%9D"><span class="nav-number">2.4.</span> <span class="nav-text">FLOPs正则化剪枝</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Zephon"
+      src="/blog/images/avatar1.gif">
+  <p class="site-author-name" itemprop="name">Zephon</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/blog/archives">
+          <span class="site-state-item-count">217</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">46</span>
+        <span class="site-state-item-name">分类</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/blog/tags/">
+          
+        <span class="site-state-item-count">47</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Zephon-H" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Zephon-H" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/blog/qq1528498238@gmail.com" title="E-Mail → qq1528498238@gmail.com"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Zephon</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">1.3m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">20:18</span>
+</div>
+
+<br />
+<!-- 网站运行时间的设置 -->
+<span id="timeDate">载入天数...</span>
+<span id="times">载入时分秒...</span>
+<script>
+    var now = new Date();
+    function createtime() {
+        var grt= new Date("04/21/2019 15:54:40");//此处修改你的建站时间或者网站上线时间
+        now.setTime(now.getTime()+250);
+        days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days);
+        hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours);
+        if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum);
+        mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;}
+        seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum);
+        snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;}
+        document.getElementById("timeDate").innerHTML = "本站已安全运行 "+dnum+" 天 ";
+        document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒";
+    }
+setInterval("createtime()",250);
+</script>
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/blog/lib/anime.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.min.js"></script>
+  <script src="/blog/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/blog/js/utils.js"></script>
+
+<script src="/blog/js/motion.js"></script>
+
+
+<script src="/blog/js/schemes/pisces.js"></script>
+
+
+<script src="/blog/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/blog/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+<script>
+NexT.utils.loadComments(document.querySelector('#lv-container'), () => {
+  window.livereOptions = {
+    refer: location.pathname.replace(CONFIG.root, '').replace('index.html', '')
+  };
+  (function(d, s) {
+    var j, e = d.getElementsByTagName(s)[0];
+    if (typeof LivereTower === 'function') { return; }
+    j = d.createElement(s);
+    j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+    j.async = true;
+    e.parentNode.insertBefore(j, e);
+  })(document, 'script');
+});
+</script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+
+</body>
+</html>
